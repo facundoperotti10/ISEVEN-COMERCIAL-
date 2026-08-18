@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0c2429;
+  --color-bg-elevated: #123339;
+  --color-card: #153c43;
+  --color-border: #2a5860;
+  --color-text: #eaf3f2;
+  --color-text-secondary: #9fc1c0;
+  --color-text-muted: #6e9294;
+  --color-primary: #1b5968;
+  --color-primary-bright: #2c8598;
+  --color-lilac: #c9c6e5;
+  --color-orange: #ff8123;
+  --color-pink: #fe8bea;
+  --color-green: #4ade80;
+  --color-yellow: #fbbf24;
+  --color-red: #f87171;
+
+  --font-display: var(--font-sora), sans-serif;
+  --font-body: var(--font-poppins), sans-serif;
+
+  --radius-card: 14px;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  .card {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+  }
+
+  .card-elevated {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+  }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .bonus-gradient {
+    background: linear-gradient(135deg, #ff8123 0%, #fe8bea 100%);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: var(--font-body);
+  }
+
+  .badge-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+}
+
+::selection {
+  background: var(--color-primary-bright);
+  color: var(--color-text);
+}
+
+input,
+select,
+textarea {
+  color-scheme: dark;
+}
