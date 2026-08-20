@@ -14,6 +14,7 @@ import { ContactForm } from '@/components/vendedor/ContactForm';
 import { ContactsList } from '@/components/vendedor/ContactsList';
 import {
   buildSellerMetrics,
+  ESTADOS,
   salesByDay,
   type Contact,
   type Period,
@@ -35,14 +36,20 @@ function todayISO(): string {
 export function VendedorDashboard({ seller, period, initialContacts, sellerName }: VendedorDashboardProps) {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [dateFilter, setDateFilter] = useState<'all' | string>('all');
+  const [estadoFilter, setEstadoFilter] = useState<'todos' | ContactEstado>('todos');
   const supabase = useMemo(() => createClient(), []);
   const today = todayISO();
 
   const metrics = useMemo(() => buildSellerMetrics(seller, contacts, period), [seller, contacts, period]);
   const dailySales = useMemo(() => salesByDay(seller.id, contacts, period), [seller.id, contacts, period]);
   const filteredContacts = useMemo(
-    () => (dateFilter === 'all' ? contacts : contacts.filter((c) => c.date === dateFilter)),
-    [contacts, dateFilter]
+    () =>
+      contacts.filter(
+        (c) =>
+          (dateFilter === 'all' || c.date === dateFilter) &&
+          (estadoFilter === 'todos' || c.estado === estadoFilter)
+      ),
+    [contacts, dateFilter, estadoFilter]
   );
 
   async function handleAdd(data: { nombre: string; telefono: string; estado: ContactEstado; observacion: string }) {
@@ -171,6 +178,18 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
                 onChange={(e) => setDateFilter(e.target.value || 'all')}
                 className="rounded-[10px] border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text focus:border-primary-bright focus:outline-none"
               />
+              <select
+                value={estadoFilter}
+                onChange={(e) => setEstadoFilter(e.target.value as 'todos' | ContactEstado)}
+                className="rounded-[10px] border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text focus:border-primary-bright focus:outline-none"
+              >
+                <option value="todos">Todos los estados</option>
+                {ESTADOS.map((e) => (
+                  <option key={e.value} value={e.value}>
+                    {e.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <ContactsList
@@ -178,7 +197,9 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
             onUpdate={handleUpdate}
             onDelete={handleDelete}
             emptyMessage={
-              dateFilter === 'all' ? 'Todavía no cargaste clientes.' : 'No hay clientes cargados ese día.'
+              dateFilter === 'all' && estadoFilter === 'todos'
+                ? 'Todavía no cargaste clientes.'
+                : 'No hay clientes que coincidan con el filtro.'
             }
           />
         </div>
