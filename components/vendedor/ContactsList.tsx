@@ -7,18 +7,20 @@ interface ContactsListProps {
   contacts: Contact[];
   onUpdate: (id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion'>>) => void;
   onDelete: (id: string) => void;
+  emptyMessage?: string;
 }
 
-export function ContactsList({ contacts, onUpdate, onDelete }: ContactsListProps) {
+export function ContactsList({ contacts, onUpdate, onDelete, emptyMessage }: ContactsListProps) {
   if (contacts.length === 0) {
-    return <p className="text-sm text-text-muted">Todavía no cargaste clientes hoy.</p>;
+    return <p className="text-sm text-text-muted">{emptyMessage ?? 'No hay clientes cargados.'}</p>;
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
+      <table className="w-full min-w-[720px] text-sm">
         <thead>
           <tr className="text-left text-xs text-text-muted">
+            <th className="py-2 pr-3 font-normal">Fecha</th>
             <th className="py-2 pr-3 font-normal">Nombre</th>
             <th className="py-2 pr-3 font-normal">Teléfono</th>
             <th className="py-2 pr-3 font-normal">Estado</th>
@@ -29,6 +31,7 @@ export function ContactsList({ contacts, onUpdate, onDelete }: ContactsListProps
         <tbody>
           {contacts.map((c) => (
             <tr key={c.id} className="border-t border-border">
+              <td className="py-2 pr-3 text-text-muted">{c.date}</td>
               <td className="py-2 pr-3 text-text">{c.nombre}</td>
               <td className="py-2 pr-3 text-text-secondary">{c.telefono || '—'}</td>
               <td className="py-2 pr-3">

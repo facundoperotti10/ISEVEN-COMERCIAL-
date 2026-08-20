@@ -34,12 +34,16 @@ function todayISO(): string {
 
 export function VendedorDashboard({ seller, period, initialContacts, sellerName }: VendedorDashboardProps) {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+  const [dateFilter, setDateFilter] = useState<'all' | string>('all');
   const supabase = useMemo(() => createClient(), []);
   const today = todayISO();
 
   const metrics = useMemo(() => buildSellerMetrics(seller, contacts, period), [seller, contacts, period]);
   const dailySales = useMemo(() => salesByDay(seller.id, contacts, period), [seller.id, contacts, period]);
-  const todaysContacts = useMemo(() => contacts.filter((c) => c.date === today), [contacts, today]);
+  const filteredContacts = useMemo(
+    () => (dateFilter === 'all' ? contacts : contacts.filter((c) => c.date === dateFilter)),
+    [contacts, dateFilter]
+  );
 
   async function handleAdd(data: { nombre: string; telefono: string; estado: ContactEstado; observacion: string }) {
     const optimisticId = `optimistic-${Date.now()}`;
@@ -133,11 +137,50 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
         </div>
 
         <div className="card p-4">
-          <h2 className="mb-3 font-display text-sm font-bold text-text">Clientes de hoy</h2>
+          <h2 className="mb-3 font-display text-sm font-bold text-text">Cargar cliente de hoy</h2>
           <ContactForm onAdd={handleAdd} />
-          <div className="mt-4">
-            <ContactsList contacts={todaysContacts} onUpdate={handleUpdate} onDelete={handleDelete} />
+        </div>
+
+        <div className="card p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-sm font-bold text-text">Mis clientes</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setDateFilter('all')}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                  dateFilter === 'all'
+                    ? 'bg-primary-bright text-bg'
+                    : 'bg-bg-elevated text-text-secondary hover:text-text'
+                }`}
+              >
+                Todos los días
+              </button>
+              <button
+                onClick={() => setDateFilter(today)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                  dateFilter === today
+                    ? 'bg-primary-bright text-bg'
+                    : 'bg-bg-elevated text-text-secondary hover:text-text'
+                }`}
+              >
+                Hoy
+              </button>
+              <input
+                type="date"
+                value={dateFilter === 'all' ? '' : dateFilter}
+                onChange={(e) => setDateFilter(e.target.value || 'all')}
+                className="rounded-[10px] border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text focus:border-primary-bright focus:outline-none"
+              />
+            </div>
           </div>
+          <ContactsList
+            contacts={filteredContacts}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            emptyMessage={
+              dateFilter === 'all' ? 'Todavía no cargaste clientes.' : 'No hay clientes cargados ese día.'
+            }
+          />
         </div>
 
         <div className="card p-4">
