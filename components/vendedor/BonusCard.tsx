@@ -30,7 +30,7 @@ export function BonusCard({ bonusUsd, currentSales, target, remainingSales }: Bo
       </div>
 
       <div className="mt-3">
-        <ProgressBar value={progressPct} color="#0C2429" height={12} />
+        <ProgressBar value={progressPct} color="#0C2429" trackColor="rgba(12, 36, 41, 0.25)" height={12} />
       </div>
 
       <p className="mt-3 text-sm font-medium text-bg/90">
