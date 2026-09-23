@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { SalesLineChart } from '@/components/ui/SalesLineChart';
 import { SellerBarChart } from '@/components/ui/SellerBarChart';
-import { currentSales, salesByDay, type Contact, type Period, type Seller } from '@/lib/calc';
+import { contactsInPeriod, currentSales, salesByDay, type Contact, type Period, type Seller } from '@/lib/calc';
 
 interface HistoryTabProps {
   sellers: Seller[];
@@ -20,8 +20,11 @@ export function HistoryTab({ sellers, contacts, period }: HistoryTabProps) {
   );
 
   const bySellerBar = useMemo(
-    () => sellers.map((s) => ({ name: s.name, value: currentSales(s, contacts) })),
-    [sellers, contacts]
+    () => {
+      const periodContacts = contactsInPeriod(contacts, period);
+      return sellers.map((s) => ({ name: s.name, value: currentSales(s, periodContacts) }));
+    },
+    [sellers, contacts, period]
   );
 
   return (
@@ -46,7 +49,7 @@ export function HistoryTab({ sellers, contacts, period }: HistoryTabProps) {
       </div>
 
       <div className="card p-4">
-        <h2 className="mb-3 font-display text-sm font-bold text-text">Ventas totales por vendedor</h2>
+        <h2 className="mb-3 font-display text-sm font-bold text-text">Ventas del período por vendedor</h2>
         <SellerBarChart data={bySellerBar} />
       </div>
     </div>
