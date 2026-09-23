@@ -8,6 +8,7 @@ import {
   buildTeamAverages,
   type Contact,
   type Period,
+  type PeriodHistoryRow,
   type Seller,
 } from '@/lib/calc';
 import { SummaryTab } from '@/components/admin/SummaryTab';
@@ -36,9 +37,10 @@ interface AdminDashboardProps {
   initialSellers: Seller[];
   initialPeriod: Period;
   initialContacts: Contact[];
+  initialHistory: PeriodHistoryRow[];
 }
 
-export function AdminDashboard({ initialSellers, initialPeriod, initialContacts }: AdminDashboardProps) {
+export function AdminDashboard({ initialSellers, initialPeriod, initialContacts, initialHistory }: AdminDashboardProps) {
   const [sellers, setSellers] = useState<Seller[]>(initialSellers);
   const [period, setPeriod] = useState<Period>(initialPeriod);
   const contacts = initialContacts;
@@ -95,6 +97,7 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts 
         <GoalsTab
           sellers={sellers}
           period={period}
+          history={initialHistory}
           onSellersChange={setSellers}
           onPeriodChange={setPeriod}
           supabase={supabase}
