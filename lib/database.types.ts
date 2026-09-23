@@ -189,6 +189,10 @@ export interface Database {
         Args: { new_name: string; new_start: string; new_end: string };
         Returns: undefined;
       };
+      auto_rollover_period: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
     };
   };
 }
