@@ -1,20 +1,25 @@
 import { requireSeller } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAll } from '@/lib/fetch-all';
 import { VendedorDashboard } from '@/components/vendedor/VendedorDashboard';
 
 export default async function VendedorPage() {
   const profile = await requireSeller();
   const supabase = await createClient();
 
-  const [{ data: seller }, { data: period }, { data: contacts }] = await Promise.all([
+  const [{ data: seller }, { data: period }, contacts] = await Promise.all([
     supabase.from('sellers').select('*').eq('id', profile.sellerId!).single(),
     supabase.from('period').select('*').eq('id', 1).single(),
-    supabase
-      .from('contacts')
-      .select('*')
-      .eq('seller_id', profile.sellerId!)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false }),
+    fetchAll((from, to) =>
+      supabase
+        .from('contacts')
+        .select('*')
+        .eq('seller_id', profile.sellerId!)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(from, to)
+    ),
   ]);
 
   if (!seller || !period) {
@@ -29,7 +34,7 @@ export default async function VendedorPage() {
     <VendedorDashboard
       seller={seller}
       period={period}
-      initialContacts={contacts ?? []}
+      initialContacts={contacts}
       sellerName={profile.displayName ?? seller.name}
     />
   );
