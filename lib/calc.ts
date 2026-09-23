@@ -46,6 +46,19 @@ export const ESTADO_LABEL: Record<ContactEstado, string> = Object.fromEntries(
 // Fechas / período
 // ---------------------------------------------------------------------------
 
+/**
+ * Fecha de hoy (yyyy-mm-dd) en hora de Argentina. Antes se usaba UTC, y a
+ * partir de las 21 hs la app ya tomaba el día siguiente.
+ */
+export function todayAR(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Argentina/Cordoba',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+}
+
 function toStartOfDay(d: Date | string): Date {
   const date = typeof d === 'string' ? new Date(`${d}T00:00:00`) : new Date(d);
   date.setHours(0, 0, 0, 0);
