@@ -80,6 +80,20 @@ export function getPeriodProgress(period: Period, today: Date = new Date()): Per
 // Ventas / ritmo
 // ---------------------------------------------------------------------------
 
+/** true si la fecha (yyyy-mm-dd) cae dentro del período activo (inclusive). */
+export function isInPeriod(dateStr: string, period: Period): boolean {
+  return dateStr >= period.start_date && dateStr <= period.end_date;
+}
+
+/**
+ * Contactos que cuentan para el objetivo del mes: solo los que tienen fecha
+ * dentro del período activo. El CRM (Clientes) y los exports siguen usando
+ * todos los contactos, sin filtrar.
+ */
+export function contactsInPeriod(contacts: Contact[], period: Period): Contact[] {
+  return contacts.filter((c) => isInPeriod(c.date, period));
+}
+
 export function contactsForSeller(sellerId: string, contacts: Contact[]): Contact[] {
   return contacts.filter((c) => c.seller_id === sellerId);
 }
@@ -182,16 +196,18 @@ export function buildSellerMetrics(
   period: Period,
   today: Date = new Date()
 ): SellerMetrics {
-  const contacts = contactsForSeller(seller.id, allContacts);
+  // Solo cuenta lo cargado dentro del período activo: cada mes arranca de cero.
+  const periodContacts = contactsInPeriod(allContacts, period);
+  const contacts = contactsForSeller(seller.id, periodContacts);
   const progress = getPeriodProgress(period, today);
 
   const consultas = contacts.length;
-  const respondidos = leadsRespondidos(seller.id, allContacts);
-  const presupuestos = presupuestosCount(seller.id, allContacts);
-  const seguimientos = seguimientosCount(seller.id, allContacts);
-  const nuevas = ventasNuevas(seller.id, allContacts);
-  const sales = currentSales(seller, allContacts);
-  const remaining = remainingSales(seller, allContacts);
+  const respondidos = leadsRespondidos(seller.id, periodContacts);
+  const presupuestos = presupuestosCount(seller.id, periodContacts);
+  const seguimientos = seguimientosCount(seller.id, periodContacts);
+  const nuevas = ventasNuevas(seller.id, periodContacts);
+  const sales = currentSales(seller, periodContacts);
+  const remaining = remainingSales(seller, periodContacts);
 
   const pActual = paceActual(nuevas, progress.elapsed);
   const pNeeded = paceNeeded(remaining, progress.remaining);
@@ -383,6 +399,59 @@ export function salesByDay(sellerId: string | null, contacts: Contact[], period:
   }
 
   return days;
+}
+
+// ---------------------------------------------------------------------------
+// Cierre de mes / historial
+// ---------------------------------------------------------------------------
+
+export type PeriodHistoryRow = {
+  id: string;
+  period_name: string;
+  start_date: string;
+  end_date: string;
+  seller_id: string;
+  seller_name: string;
+  initial_sales: number;
+  sales: number;
+  target: number;
+  bonus_usd: number;
+  reached: boolean;
+  consultas: number;
+  respondidos: number;
+  presupuestos: number;
+  seguimientos: number;
+  perdidos: number;
+  closed_at: string;
+};
+
+const MESES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+/** Sugerencia para el período siguiente: el mes calendario posterior al cierre actual. */
+export function nextMonthPeriod(period: Period): Period {
+  const [y, m, d] = period.end_date.split('-').map(Number);
+  const start = new Date(Date.UTC(y, m - 1, d + 1));
+  const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0));
+  const iso = (x: Date) => x.toISOString().slice(0, 10);
+  return {
+    name: `${MESES[start.getUTCMonth()]} ${start.getUTCFullYear()}`,
+    start_date: iso(start),
+    end_date: iso(end),
+  };
+}
+
+/** Agrupa el historial por mes cerrado, del más reciente al más viejo. */
+export function groupHistory(rows: PeriodHistoryRow[]) {
+  const map = new Map<string, { name: string; start_date: string; end_date: string; rows: PeriodHistoryRow[] }>();
+  for (const r of rows) {
+    const g = map.get(r.start_date) ?? { name: r.period_name, start_date: r.start_date, end_date: r.end_date, rows: [] };
+    g.rows.push(r);
+    map.set(r.start_date, g);
+  }
+  return [...map.values()].sort((a, b) => b.start_date.localeCompare(a.start_date));
 }
 
 // ---------------------------------------------------------------------------
