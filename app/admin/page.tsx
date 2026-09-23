@@ -1,15 +1,24 @@
 import { requireAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAll } from '@/lib/fetch-all';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 
 export default async function AdminPage() {
   await requireAdmin();
   const supabase = await createClient();
 
-  const [{ data: sellers }, { data: period }, { data: contacts }] = await Promise.all([
+  const [{ data: sellers }, { data: period }, contacts, { data: history }] = await Promise.all([
     supabase.from('sellers').select('*').order('created_at', { ascending: true }),
     supabase.from('period').select('*').eq('id', 1).single(),
-    supabase.from('contacts').select('*').order('date', { ascending: false }),
+    fetchAll((from, to) =>
+      supabase
+        .from('contacts')
+        .select('*')
+        .order('date', { ascending: false })
+        .order('id', { ascending: true })
+        .range(from, to)
+    ),
+    supabase.from('period_history').select('*').order('start_date', { ascending: false }),
   ]);
 
   if (!period) {
@@ -21,6 +30,11 @@ export default async function AdminPage() {
   }
 
   return (
-    <AdminDashboard initialSellers={sellers ?? []} initialPeriod={period} initialContacts={contacts ?? []} />
+    <AdminDashboard
+      initialSellers={sellers ?? []}
+      initialPeriod={period}
+      initialContacts={contacts}
+      initialHistory={history ?? []}
+    />
   );
 }
