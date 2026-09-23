@@ -12,6 +12,7 @@ import { BonusCard } from '@/components/vendedor/BonusCard';
 import { RespondidosCard } from '@/components/vendedor/RespondidosCard';
 import { ContactForm } from '@/components/vendedor/ContactForm';
 import { ContactsList } from '@/components/vendedor/ContactsList';
+import { DailyReportCard } from '@/components/vendedor/DailyReportCard';
 import {
   buildSellerMetrics,
   ESTADOS,
@@ -19,6 +20,7 @@ import {
   type Contact,
   type Period,
   type Seller,
+  todayAR,
 } from '@/lib/calc';
 import type { ContactEstado } from '@/lib/database.types';
 
@@ -29,16 +31,12 @@ interface VendedorDashboardProps {
   sellerName: string;
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function VendedorDashboard({ seller, period, initialContacts, sellerName }: VendedorDashboardProps) {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [dateFilter, setDateFilter] = useState<'all' | string>('all');
   const [estadoFilter, setEstadoFilter] = useState<'todos' | ContactEstado>('todos');
   const supabase = useMemo(() => createClient(), []);
-  const today = todayISO();
+  const today = todayAR();
 
   const metrics = useMemo(() => buildSellerMetrics(seller, contacts, period), [seller, contacts, period]);
   const dailySales = useMemo(() => salesByDay(seller.id, contacts, period), [seller.id, contacts, period]);
@@ -203,6 +201,15 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
             }
           />
         </div>
+
+        <DailyReportCard
+          seller={seller}
+          sellerName={sellerName}
+          period={period}
+          metrics={metrics}
+          contacts={contacts}
+          today={today}
+        />
 
         <div className="card p-4">
           <h2 className="mb-3 font-display text-sm font-bold text-text">Ventas por día</h2>
