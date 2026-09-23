@@ -106,6 +106,50 @@ export interface Database {
           },
         ];
       };
+      period_history: {
+        Row: {
+          id: string;
+          period_name: string;
+          start_date: string;
+          end_date: string;
+          seller_id: string;
+          seller_name: string;
+          initial_sales: number;
+          sales: number;
+          target: number;
+          bonus_usd: number;
+          reached: boolean;
+          consultas: number;
+          respondidos: number;
+          presupuestos: number;
+          seguimientos: number;
+          perdidos: number;
+          closed_at: string;
+          closed_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          period_name: string;
+          start_date: string;
+          end_date: string;
+          seller_id: string;
+          seller_name: string;
+          initial_sales?: number;
+          sales?: number;
+          target?: number;
+          bonus_usd?: number;
+          reached?: boolean;
+          consultas?: number;
+          respondidos?: number;
+          presupuestos?: number;
+          seguimientos?: number;
+          perdidos?: number;
+          closed_at?: string;
+          closed_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['period_history']['Insert']>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -140,6 +184,11 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      close_period: {
+        Args: { new_name: string; new_start: string; new_end: string };
+        Returns: undefined;
+      };
+    };
   };
 }
