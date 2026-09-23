@@ -14,6 +14,7 @@ import {
   type Seller,
   type SellerMetrics,
   type TeamAverages,
+  todayAR,
 } from '@/lib/calc';
 
 interface SummaryTabProps {
@@ -22,10 +23,6 @@ interface SummaryTabProps {
   period: Period;
   contacts: Contact[];
   sellers: Seller[];
-}
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function downloadCSV(csv: string, filename: string) {
@@ -42,7 +39,7 @@ function downloadCSV(csv: string, filename: string) {
 
 export function SummaryTab({ metrics, teamAverages, period, contacts, sellers }: SummaryTabProps) {
   const projection = buildTeamProjection(metrics, period);
-  const today = todayISO();
+  const today = todayAR();
   const sellersById = Object.fromEntries(sellers.map((s) => [s.id, s]));
 
   const cargaHoy = metrics.map((m) => ({
