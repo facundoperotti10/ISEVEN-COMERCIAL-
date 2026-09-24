@@ -7,6 +7,9 @@ export default async function AdminPage() {
   await requireAdmin();
   const supabase = await createClient();
 
+  // Si el mes ya terminó, lo cierra y arranca el siguiente (también corre solo cada noche).
+  await supabase.rpc('auto_rollover_period');
+
   const [{ data: sellers }, { data: period }, contacts, { data: history }] = await Promise.all([
     supabase.from('sellers').select('*').order('created_at', { ascending: true }),
     supabase.from('period').select('*').eq('id', 1).single(),
