@@ -7,6 +7,9 @@ export default async function VendedorPage() {
   const profile = await requireSeller();
   const supabase = await createClient();
 
+  // Si el mes ya terminó, lo cierra y arranca el siguiente (también corre solo cada noche).
+  await supabase.rpc('auto_rollover_period');
+
   const [{ data: seller }, { data: period }, contacts] = await Promise.all([
     supabase.from('sellers').select('*').eq('id', profile.sellerId!).single(),
     supabase.from('period').select('*').eq('id', 1).single(),
