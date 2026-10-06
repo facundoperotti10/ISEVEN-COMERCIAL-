@@ -181,6 +181,37 @@ export function pct(numerator: number, denominator: number): number {
 }
 
 // ---------------------------------------------------------------------------
+// Recordatorio de seguimiento
+// ---------------------------------------------------------------------------
+
+export interface SeguimientoPendiente {
+  contact: Contact;
+  diasSinMovimiento: number;
+}
+
+/**
+ * Clientes en estado "seguimiento" que no se tocaron hoy. Un cliente marcado
+ * como seguimiento recién hoy no aparece todavía — se le recuerda al
+ * vendedor recién al día siguiente, y sigue apareciendo mientras no le
+ * cambie el estado.
+ */
+export function seguimientosPendientes(
+  sellerId: string,
+  contacts: Contact[],
+  today: string
+): SeguimientoPendiente[] {
+  const todayDate = toStartOfDay(today);
+  return contacts
+    .filter((c) => c.seller_id === sellerId && c.estado === 'seguimiento')
+    .map((c) => ({
+      contact: c,
+      diasSinMovimiento: daysBetween(toStartOfDay(todayAR(new Date(c.updated_at))), todayDate),
+    }))
+    .filter((x) => x.diasSinMovimiento >= 1)
+    .sort((a, b) => b.diasSinMovimiento - a.diasSinMovimiento);
+}
+
+// ---------------------------------------------------------------------------
 // Métricas completas por vendedor
 // ---------------------------------------------------------------------------
 

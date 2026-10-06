@@ -13,10 +13,12 @@ import { RespondidosCard } from '@/components/vendedor/RespondidosCard';
 import { ContactForm } from '@/components/vendedor/ContactForm';
 import { ContactsList } from '@/components/vendedor/ContactsList';
 import { DailyReportCard } from '@/components/vendedor/DailyReportCard';
+import { SeguimientoReminder } from '@/components/vendedor/SeguimientoReminder';
 import {
   buildSellerMetrics,
   ESTADOS,
   salesByDay,
+  seguimientosPendientes,
   type Contact,
   type Period,
   type Seller,
@@ -40,6 +42,10 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
 
   const metrics = useMemo(() => buildSellerMetrics(seller, contacts, period), [seller, contacts, period]);
   const dailySales = useMemo(() => salesByDay(seller.id, contacts, period), [seller.id, contacts, period]);
+  const pendientes = useMemo(
+    () => seguimientosPendientes(seller.id, contacts, today),
+    [seller.id, contacts, today]
+  );
   const filteredContacts = useMemo(
     () =>
       contacts.filter(
@@ -115,6 +121,8 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
           target={seller.target}
           remainingSales={metrics.remainingSales}
         />
+
+        <SeguimientoReminder pendientes={pendientes} onUpdate={handleUpdate} />
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <KpiCard label="Objetivo" value={seller.target} />

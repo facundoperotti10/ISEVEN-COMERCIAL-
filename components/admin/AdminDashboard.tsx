@@ -92,7 +92,9 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
       {tab === 'embudo' && <FunnelTab metrics={metrics} />}
       {tab === 'ranking' && <RankingTab metrics={metrics} />}
       {tab === 'semana' && <WeekTab sellers={activeSellers} contacts={contacts} />}
-      {tab === 'historico' && <HistoryTab sellers={activeSellers} contacts={contacts} period={period} />}
+      {tab === 'historico' && (
+        <HistoryTab sellers={activeSellers} contacts={contacts} period={period} history={initialHistory} />
+      )}
       {tab === 'objetivos' && (
         <GoalsTab
           sellers={sellers}
