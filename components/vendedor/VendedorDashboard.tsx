@@ -15,8 +15,10 @@ import { ContactsList } from '@/components/vendedor/ContactsList';
 import { DailyReportCard } from '@/components/vendedor/DailyReportCard';
 import { SeguimientoReminder } from '@/components/vendedor/SeguimientoReminder';
 import { SaleCelebration, type CelebrationTrigger } from '@/components/vendedor/SaleCelebration';
+import { TeamRanking } from '@/components/vendedor/TeamRanking';
 import {
   buildSellerMetrics,
+  buildTeamRanking,
   distinctSources,
   ESTADOS,
   salesByDay,
@@ -24,6 +26,7 @@ import {
   type Contact,
   type Period,
   type Seller,
+  type TeamRankingRaw,
   todayAR,
 } from '@/lib/calc';
 import type { ContactEstado } from '@/lib/database.types';
@@ -32,10 +35,17 @@ interface VendedorDashboardProps {
   seller: Seller;
   period: Period;
   initialContacts: Contact[];
+  initialRanking: TeamRankingRaw[];
   sellerName: string;
 }
 
-export function VendedorDashboard({ seller, period, initialContacts, sellerName }: VendedorDashboardProps) {
+export function VendedorDashboard({
+  seller,
+  period,
+  initialContacts,
+  initialRanking,
+  sellerName,
+}: VendedorDashboardProps) {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [dateFilter, setDateFilter] = useState<'all' | string>('all');
   const [estadoFilter, setEstadoFilter] = useState<'todos' | ContactEstado>('todos');
@@ -51,6 +61,16 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
     [seller.id, contacts, today]
   );
   const sources = useMemo(() => distinctSources(contacts), [contacts]);
+  const ranking = useMemo(() => {
+    const base = buildTeamRanking(initialRanking);
+    return base
+      .map((r) =>
+        r.sellerId === seller.id
+          ? { ...r, sales: metrics.currentSales, cumplimientoPct: metrics.cumplimientoPct }
+          : r
+      )
+      .sort((a, b) => b.cumplimientoPct - a.cumplimientoPct);
+  }, [initialRanking, seller.id, metrics.currentSales, metrics.cumplimientoPct]);
   const filteredContacts = useMemo(
     () =>
       contacts.filter(
@@ -154,6 +174,8 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
         </div>
 
         <RespondidosCard respondidos={metrics.respondidos} convRespondidos={metrics.convRespondidos} />
+
+        <TeamRanking ranking={ranking} currentSellerId={seller.id} />
 
         <div className="card p-4">
           <div className="mb-2 flex items-center justify-between">

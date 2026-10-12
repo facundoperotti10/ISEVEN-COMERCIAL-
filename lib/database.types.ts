@@ -196,6 +196,18 @@ export interface Database {
         Args: Record<string, never>;
         Returns: number;
       };
+      team_ranking: {
+        Args: Record<string, never>;
+        Returns: {
+          seller_id: string;
+          seller_name: string;
+          sales: number;
+          target: number;
+          consultas: number;
+          respondidos: number;
+          ventas: number;
+        }[];
+      };
     };
   };
 }

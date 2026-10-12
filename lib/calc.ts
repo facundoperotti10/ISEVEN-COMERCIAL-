@@ -575,3 +575,37 @@ export function sourceBreakdown(contacts: Contact[]): SourceBreakdown[] {
     .map(([fuente, g]) => ({ fuente, consultas: g.consultas, ventas: g.ventas, convPct: pct(g.ventas, g.consultas) }))
     .sort((a, b) => b.consultas - a.consultas);
 }
+
+// ---------------------------------------------------------------------------
+// Ranking del equipo (vista del vendedor)
+// ---------------------------------------------------------------------------
+
+export interface TeamRankingRaw {
+  seller_id: string;
+  seller_name: string;
+  sales: number;
+  target: number;
+  consultas: number;
+  respondidos: number;
+  ventas: number;
+}
+
+export interface TeamRankingRow {
+  sellerId: string;
+  sellerName: string;
+  sales: number;
+  target: number;
+  cumplimientoPct: number;
+}
+
+export function buildTeamRanking(rows: TeamRankingRaw[]): TeamRankingRow[] {
+  return rows
+    .map((r) => ({
+      sellerId: r.seller_id,
+      sellerName: r.seller_name,
+      sales: r.sales,
+      target: r.target,
+      cumplimientoPct: r.target > 0 ? pct(r.sales, r.target) : 0,
+    }))
+    .sort((a, b) => b.cumplimientoPct - a.cumplimientoPct);
+}

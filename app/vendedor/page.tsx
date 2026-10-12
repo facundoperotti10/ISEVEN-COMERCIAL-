@@ -10,7 +10,7 @@ export default async function VendedorPage() {
   // Si el mes ya terminó, lo cierra y arranca el siguiente (también corre solo cada noche).
   await supabase.rpc('auto_rollover_period');
 
-  const [{ data: seller }, { data: period }, contacts] = await Promise.all([
+  const [{ data: seller }, { data: period }, contacts, { data: ranking }] = await Promise.all([
     supabase.from('sellers').select('*').eq('id', profile.sellerId!).single(),
     supabase.from('period').select('*').eq('id', 1).single(),
     fetchAll((from, to) =>
@@ -23,6 +23,7 @@ export default async function VendedorPage() {
         .order('id', { ascending: true })
         .range(from, to)
     ),
+    supabase.rpc('team_ranking'),
   ]);
 
   if (!seller || !period) {
@@ -38,6 +39,7 @@ export default async function VendedorPage() {
       seller={seller}
       period={period}
       initialContacts={contacts}
+      initialRanking={ranking ?? []}
       sellerName={profile.displayName ?? seller.name}
     />
   );
