@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/ui/LogoutButton';
 import { KpiCard } from '@/components/ui/KpiCard';
@@ -14,6 +14,7 @@ import { ContactForm } from '@/components/vendedor/ContactForm';
 import { ContactsList } from '@/components/vendedor/ContactsList';
 import { DailyReportCard } from '@/components/vendedor/DailyReportCard';
 import { SeguimientoReminder } from '@/components/vendedor/SeguimientoReminder';
+import { SaleCelebration, type CelebrationTrigger } from '@/components/vendedor/SaleCelebration';
 import {
   buildSellerMetrics,
   distinctSources,
@@ -38,6 +39,8 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [dateFilter, setDateFilter] = useState<'all' | string>('all');
   const [estadoFilter, setEstadoFilter] = useState<'todos' | ContactEstado>('todos');
+  const [celebration, setCelebration] = useState<CelebrationTrigger | null>(null);
+  const dismissCelebration = useCallback(() => setCelebration(null), []);
   const supabase = useMemo(() => createClient(), []);
   const today = todayAR();
 
@@ -100,10 +103,17 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
     }
 
     setContacts((prev) => prev.map((c) => (c.id === optimisticId ? inserted : c)));
+    if (inserted.estado === 'vendido') {
+      setCelebration({ id: Date.now(), nombre: inserted.nombre });
+    }
   }
 
   async function handleUpdate(id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion' | 'fuente'>>) {
     setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    if (patch.estado === 'vendido') {
+      const contact = contacts.find((c) => c.id === id);
+      if (contact) setCelebration({ id: Date.now(), nombre: contact.nombre });
+    }
     await supabase.from('contacts').update(patch).eq('id', id);
   }
 
@@ -116,6 +126,8 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">
+      <SaleCelebration trigger={celebration} onDone={dismissCelebration} />
+
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-xl font-bold text-text">Hola, {sellerName}</h1>
