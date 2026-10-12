@@ -71,6 +71,7 @@ export interface Database {
           telefono: string | null;
           estado: ContactEstado;
           observacion: string | null;
+          fuente: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -82,6 +83,7 @@ export interface Database {
           telefono?: string | null;
           estado?: ContactEstado;
           observacion?: string | null;
+          fuente?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -93,6 +95,7 @@ export interface Database {
           telefono?: string | null;
           estado?: ContactEstado;
           observacion?: string | null;
+          fuente?: string | null;
           created_at?: string;
           updated_at?: string;
         };

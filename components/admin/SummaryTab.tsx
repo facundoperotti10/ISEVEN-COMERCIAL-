@@ -2,6 +2,7 @@
 
 import { KpiCard } from '@/components/ui/KpiCard';
 import { SemaforoBadge } from '@/components/ui/SemaforoBadge';
+import { SellerBarChart } from '@/components/ui/SellerBarChart';
 import {
   buildTeamProjection,
   contactsToCSV,
@@ -9,6 +10,7 @@ import {
   DIAGNOSTICO_LABEL,
   formatNumber,
   formatPct,
+  sourceBreakdown,
   type Contact,
   type Period,
   type Seller,
@@ -50,6 +52,8 @@ export function SummaryTab({ metrics, teamAverages, period, contacts, sellers }:
   const alertas = metrics
     .map((m) => ({ seller: m.seller, diagnostico: diagnosticar(m, teamAverages) }))
     .filter((a) => a.diagnostico !== 'saludable');
+
+  const fuentes = sourceBreakdown(contacts);
 
   return (
     <div className="flex flex-col gap-4">
@@ -96,6 +100,39 @@ export function SummaryTab({ metrics, teamAverages, period, contacts, sellers }:
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="card p-4">
+        <h2 className="mb-3 font-display text-sm font-bold text-text">Clientes por fuente</h2>
+        {fuentes.length === 0 ? (
+          <p className="text-sm text-text-muted">Todavía no se cargó ninguna fuente.</p>
+        ) : (
+          <>
+            <SellerBarChart data={fuentes.map((f) => ({ name: f.fuente, value: f.consultas }))} color="#FE8BEA" />
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[480px] text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-text-muted">
+                    <th className="py-2 pr-3 font-normal">Fuente</th>
+                    <th className="py-2 pr-3 font-normal">Clientes</th>
+                    <th className="py-2 pr-3 font-normal">Ventas</th>
+                    <th className="py-2 pr-3 font-normal">% cierre</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fuentes.map((f) => (
+                    <tr key={f.fuente} className="border-t border-border">
+                      <td className="py-2 pr-3 text-text">{f.fuente}</td>
+                      <td className="py-2 pr-3 text-text-secondary">{f.consultas}</td>
+                      <td className="py-2 pr-3 text-text-secondary">{f.ventas}</td>
+                      <td className="py-2 pr-3 text-text-secondary">{formatPct(f.convPct)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="card p-4">

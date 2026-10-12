@@ -41,6 +41,7 @@ create table if not exists contacts (
   telefono text,
   estado contact_estado not null default 'consulta',
   observacion text,
+  fuente text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

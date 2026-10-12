@@ -16,6 +16,7 @@ import { DailyReportCard } from '@/components/vendedor/DailyReportCard';
 import { SeguimientoReminder } from '@/components/vendedor/SeguimientoReminder';
 import {
   buildSellerMetrics,
+  distinctSources,
   ESTADOS,
   salesByDay,
   seguimientosPendientes,
@@ -46,6 +47,7 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
     () => seguimientosPendientes(seller.id, contacts, today),
     [seller.id, contacts, today]
   );
+  const sources = useMemo(() => distinctSources(contacts), [contacts]);
   const filteredContacts = useMemo(
     () =>
       contacts.filter(
@@ -56,7 +58,13 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
     [contacts, dateFilter, estadoFilter]
   );
 
-  async function handleAdd(data: { nombre: string; telefono: string; estado: ContactEstado; observacion: string }) {
+  async function handleAdd(data: {
+    nombre: string;
+    telefono: string;
+    estado: ContactEstado;
+    observacion: string;
+    fuente: string;
+  }) {
     const optimisticId = `optimistic-${Date.now()}`;
     const optimistic: Contact = {
       id: optimisticId,
@@ -66,6 +74,7 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
       telefono: data.telefono || null,
       estado: data.estado,
       observacion: data.observacion || null,
+      fuente: data.fuente || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -80,6 +89,7 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
         telefono: data.telefono || null,
         estado: data.estado,
         observacion: data.observacion || null,
+        fuente: data.fuente || null,
       })
       .select()
       .single();
@@ -92,7 +102,7 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
     setContacts((prev) => prev.map((c) => (c.id === optimisticId ? inserted : c)));
   }
 
-  async function handleUpdate(id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion'>>) {
+  async function handleUpdate(id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion' | 'fuente'>>) {
     setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
     await supabase.from('contacts').update(patch).eq('id', id);
   }
@@ -151,7 +161,7 @@ export function VendedorDashboard({ seller, period, initialContacts, sellerName 
 
         <div className="card p-4">
           <h2 className="mb-3 font-display text-sm font-bold text-text">Cargar cliente de hoy</h2>
-          <ContactForm onAdd={handleAdd} />
+          <ContactForm onAdd={handleAdd} sources={sources} />
         </div>
 
         <div className="card p-4">

@@ -17,6 +17,7 @@ export type Contact = {
   telefono: string | null;
   estado: ContactEstado;
   observacion: string | null;
+  fuente: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -517,7 +518,7 @@ export function formatNumber(n: number, digits = 1): string {
 // ---------------------------------------------------------------------------
 
 export function contactsToCSV(contacts: Contact[], sellersById: Record<string, Seller>): string {
-  const header = ['vendedor', 'fecha', 'nombre_cliente', 'telefono', 'estado', 'observacion'];
+  const header = ['vendedor', 'fecha', 'nombre_cliente', 'telefono', 'estado', 'observacion', 'fuente'];
   const escape = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
 
   const rows = contacts.map((c) =>
@@ -528,10 +529,49 @@ export function contactsToCSV(contacts: Contact[], sellersById: Record<string, S
       c.telefono ?? '',
       ESTADO_LABEL[c.estado],
       c.observacion ?? '',
+      c.fuente ?? '',
     ]
       .map(escape)
       .join(',')
   );
 
   return [header.join(','), ...rows].join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Fuente del cliente (de qué publicidad/reel/canal vino)
+// ---------------------------------------------------------------------------
+
+const SIN_FUENTE = 'Sin especificar';
+
+/** Fuentes ya usadas, para autocompletar el campo al cargar un cliente nuevo. */
+export function distinctSources(contacts: Contact[]): string[] {
+  const set = new Set<string>();
+  for (const c of contacts) {
+    const f = c.fuente?.trim();
+    if (f) set.add(f);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+export interface SourceBreakdown {
+  fuente: string;
+  consultas: number;
+  ventas: number;
+  convPct: number;
+}
+
+/** Cuántos clientes (y ventas) entraron por cada fuente, para ver qué canal rinde mejor. */
+export function sourceBreakdown(contacts: Contact[]): SourceBreakdown[] {
+  const groups = new Map<string, { consultas: number; ventas: number }>();
+  for (const c of contacts) {
+    const key = c.fuente?.trim() || SIN_FUENTE;
+    const g = groups.get(key) ?? { consultas: 0, ventas: 0 };
+    g.consultas += 1;
+    if (c.estado === 'vendido') g.ventas += 1;
+    groups.set(key, g);
+  }
+  return [...groups.entries()]
+    .map(([fuente, g]) => ({ fuente, consultas: g.consultas, ventas: g.ventas, convPct: pct(g.ventas, g.consultas) }))
+    .sort((a, b) => b.consultas - a.consultas);
 }

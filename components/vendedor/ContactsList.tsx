@@ -5,7 +5,7 @@ import type { ContactEstado } from '@/lib/database.types';
 
 interface ContactsListProps {
   contacts: Contact[];
-  onUpdate: (id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion'>>) => void;
+  onUpdate: (id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion' | 'fuente'>>) => void;
   onDelete: (id: string) => void;
   emptyMessage?: string;
 }
@@ -17,13 +17,14 @@ export function ContactsList({ contacts, onUpdate, onDelete, emptyMessage }: Con
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-sm">
+      <table className="w-full min-w-[840px] text-sm">
         <thead>
           <tr className="text-left text-xs text-text-muted">
             <th className="py-2 pr-3 font-normal">Fecha</th>
             <th className="py-2 pr-3 font-normal">Nombre</th>
             <th className="py-2 pr-3 font-normal">Teléfono</th>
             <th className="py-2 pr-3 font-normal">Estado</th>
+            <th className="py-2 pr-3 font-normal">Fuente</th>
             <th className="py-2 pr-3 font-normal">Observación</th>
             <th className="py-2 pr-3 font-normal" />
           </tr>
@@ -46,6 +47,14 @@ export function ContactsList({ contacts, onUpdate, onDelete, emptyMessage }: Con
                     </option>
                   ))}
                 </select>
+              </td>
+              <td className="py-2 pr-3">
+                <input
+                  defaultValue={c.fuente ?? ''}
+                  onBlur={(e) => onUpdate(c.id, { fuente: e.target.value })}
+                  placeholder="—"
+                  className="w-full rounded-md border border-border bg-bg-elevated px-2 py-1 text-xs text-text placeholder:text-text-muted focus:border-primary-bright focus:outline-none"
+                />
               </td>
               <td className="py-2 pr-3">
                 <input
