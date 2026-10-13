@@ -98,7 +98,7 @@ export function VendedorDashboard({
     estado: ContactEstado;
     observacion: string;
     fuente: string;
-  }) {
+  }): Promise<boolean> {
     const optimisticId = `optimistic-${Date.now()}`;
     const optimistic: Contact = {
       id: optimisticId,
@@ -144,14 +144,16 @@ export function VendedorDashboard({
     }
 
     if (error || !inserted) {
+      console.error('No se pudo guardar el cliente:', error);
       setContacts((prev) => prev.filter((c) => c.id !== optimisticId));
-      return;
+      return false;
     }
 
     setContacts((prev) => prev.map((c) => (c.id === optimisticId ? inserted : c)));
     if (inserted.estado === 'vendido') {
       setCelebration({ id: Date.now(), nombre: inserted.nombre });
     }
+    return true;
   }
 
   async function handleUpdate(id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion' | 'fuente'>>) {
@@ -168,8 +170,13 @@ export function VendedorDashboard({
       if (patch.estado !== undefined) fallbackPatch.estado = patch.estado;
       if (patch.observacion !== undefined) fallbackPatch.observacion = patch.observacion;
       if (Object.keys(fallbackPatch).length > 0) {
-        await supabase.from('contacts').update(fallbackPatch).eq('id', id);
+        const { error: fallbackError } = await supabase.from('contacts').update(fallbackPatch).eq('id', id);
+        if (fallbackError) {
+          console.error('No se pudo actualizar el cliente:', fallbackError);
+        }
       }
+    } else if (error) {
+      console.error('No se pudo actualizar el cliente:', error);
     }
   }
 

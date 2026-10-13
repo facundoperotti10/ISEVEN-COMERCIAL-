@@ -11,7 +11,7 @@ interface ContactFormProps {
     estado: ContactEstado;
     observacion: string;
     fuente: string;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   sources: string[];
 }
 
@@ -22,23 +22,29 @@ export function ContactForm({ onAdd, sources }: ContactFormProps) {
   const [observacion, setObservacion] = useState('');
   const [fuente, setFuente] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!nombre.trim()) return;
     setSaving(true);
-    await onAdd({
+    setError(false);
+    const ok = await onAdd({
       nombre: nombre.trim(),
       telefono: telefono.trim(),
       estado,
       observacion: observacion.trim(),
       fuente: fuente.trim(),
     });
-    setNombre('');
-    setTelefono('');
-    setEstado('consulta');
-    setObservacion('');
-    setFuente('');
+    if (ok) {
+      setNombre('');
+      setTelefono('');
+      setEstado('consulta');
+      setObservacion('');
+      setFuente('');
+    } else {
+      setError(true);
+    }
     setSaving(false);
   }
 
@@ -92,6 +98,12 @@ export function ContactForm({ onAdd, sources }: ContactFormProps) {
       >
         {saving ? 'Guardando…' : '+ Agregar cliente'}
       </button>
+      {error && (
+        <p className="text-xs text-red sm:col-span-2 lg:col-span-3">
+          No se pudo guardar el cliente (puede ser un problema de conexión). No se perdió lo que escribiste — tocá
+          &quot;+ Agregar cliente&quot; de nuevo para reintentar.
+        </p>
+      )}
     </form>
   );
 }
