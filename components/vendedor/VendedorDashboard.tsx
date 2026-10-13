@@ -31,6 +31,17 @@ import {
 } from '@/lib/calc';
 import type { ContactEstado } from '@/lib/database.types';
 
+/**
+ * true si Supabase rechazó el pedido porque la columna `fuente` todavía no
+ * existe en la base (la migración no se corrió). Permite reintentar sin ese
+ * campo en vez de que se rompa la carga de clientes por completo.
+ */
+function isMissingFuenteColumn(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  const message = e?.message ?? '';
+  return e?.code === 'PGRST204' || (/fuente/i.test(message) && /column|schema/i.test(message));
+}
+
 interface VendedorDashboardProps {
   seller: Seller;
   period: Period;
@@ -103,7 +114,7 @@ export function VendedorDashboard({
     };
     setContacts((prev) => [optimistic, ...prev]);
 
-    const { data: inserted, error } = await supabase
+    let { data: inserted, error } = await supabase
       .from('contacts')
       .insert({
         seller_id: seller.id,
@@ -116,6 +127,21 @@ export function VendedorDashboard({
       })
       .select()
       .single();
+
+    if (error && isMissingFuenteColumn(error)) {
+      ({ data: inserted, error } = await supabase
+        .from('contacts')
+        .insert({
+          seller_id: seller.id,
+          date: today,
+          nombre: data.nombre,
+          telefono: data.telefono || null,
+          estado: data.estado,
+          observacion: data.observacion || null,
+        })
+        .select()
+        .single());
+    }
 
     if (error || !inserted) {
       setContacts((prev) => prev.filter((c) => c.id !== optimisticId));
@@ -134,7 +160,17 @@ export function VendedorDashboard({
       const contact = contacts.find((c) => c.id === id);
       if (contact) setCelebration({ id: Date.now(), nombre: contact.nombre });
     }
-    await supabase.from('contacts').update(patch).eq('id', id);
+
+    const { error } = await supabase.from('contacts').update(patch).eq('id', id);
+
+    if (error && isMissingFuenteColumn(error) && 'fuente' in patch) {
+      const fallbackPatch: Partial<Pick<Contact, 'estado' | 'observacion'>> = {};
+      if (patch.estado !== undefined) fallbackPatch.estado = patch.estado;
+      if (patch.observacion !== undefined) fallbackPatch.observacion = patch.observacion;
+      if (Object.keys(fallbackPatch).length > 0) {
+        await supabase.from('contacts').update(fallbackPatch).eq('id', id);
+      }
+    }
   }
 
   async function handleDelete(id: string) {
