@@ -1,6 +1,6 @@
 'use client';
 
-import { ESTADOS, type Contact } from '@/lib/calc';
+import { ESTADOS, fuenteOptions, type Contact } from '@/lib/calc';
 import type { ContactEstado } from '@/lib/database.types';
 
 interface ContactsListProps {
@@ -49,12 +49,18 @@ export function ContactsList({ contacts, onUpdate, onDelete, emptyMessage }: Con
                 </select>
               </td>
               <td className="py-2 pr-3">
-                <input
-                  defaultValue={c.fuente ?? ''}
-                  onBlur={(e) => onUpdate(c.id, { fuente: e.target.value })}
-                  placeholder="—"
-                  className="w-full rounded-md border border-border bg-bg-elevated px-2 py-1 text-xs text-text placeholder:text-text-muted focus:border-primary-bright focus:outline-none"
-                />
+                <select
+                  value={c.fuente ?? ''}
+                  onChange={(e) => onUpdate(c.id, { fuente: e.target.value })}
+                  className="w-full rounded-md border border-border bg-bg-elevated px-2 py-1 text-xs text-text focus:border-primary-bright focus:outline-none"
+                >
+                  <option value="">—</option>
+                  {fuenteOptions(c.fuente).map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
               </td>
               <td className="py-2 pr-3">
                 <input

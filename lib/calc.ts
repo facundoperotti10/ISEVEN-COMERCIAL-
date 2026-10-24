@@ -39,6 +39,18 @@ export const ESTADOS: { value: ContactEstado; label: string }[] = [
   { value: 'perdido', label: 'Perdido' },
 ];
 
+/** Fuentes de contacto: de dónde llegó el cliente. Lista fija (desplegable). */
+export const FUENTES = ['TikTok', 'Instagram', 'WhatsApp', 'Referido'] as const;
+
+/**
+ * Opciones del desplegable de fuente. Si un cliente viejo tiene una fuente
+ * escrita a mano que no está en la lista fija, se agrega para no perderla.
+ */
+export function fuenteOptions(current?: string | null): string[] {
+  const c = current?.trim();
+  return c && !(FUENTES as readonly string[]).includes(c) ? [...FUENTES, c] : [...FUENTES];
+}
+
 export const ESTADO_LABEL: Record<ContactEstado, string> = Object.fromEntries(
   ESTADOS.map((e) => [e.value, e.label])
 ) as Record<ContactEstado, string>;

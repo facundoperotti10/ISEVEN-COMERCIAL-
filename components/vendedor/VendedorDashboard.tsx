@@ -19,7 +19,6 @@ import { TeamRanking } from '@/components/vendedor/TeamRanking';
 import {
   buildSellerMetrics,
   buildTeamRanking,
-  distinctSources,
   ESTADOS,
   salesByDay,
   seguimientosPendientes,
@@ -71,7 +70,6 @@ export function VendedorDashboard({
     () => seguimientosPendientes(seller.id, contacts, today),
     [seller.id, contacts, today]
   );
-  const sources = useMemo(() => distinctSources(contacts), [contacts]);
   const ranking = useMemo(() => {
     const base = buildTeamRanking(initialRanking);
     return base
@@ -238,7 +236,7 @@ export function VendedorDashboard({
 
         <div className="card p-4">
           <h2 className="mb-3 font-display text-sm font-bold text-text">Cargar cliente de hoy</h2>
-          <ContactForm onAdd={handleAdd} sources={sources} />
+          <ContactForm onAdd={handleAdd} />
         </div>
 
         <div className="card p-4">

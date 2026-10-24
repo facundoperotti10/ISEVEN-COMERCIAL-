@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ESTADOS } from '@/lib/calc';
+import { ESTADOS, FUENTES } from '@/lib/calc';
 import type { ContactEstado } from '@/lib/database.types';
 
 interface ContactFormProps {
@@ -12,10 +12,9 @@ interface ContactFormProps {
     observacion: string;
     fuente: string;
   }) => Promise<boolean>;
-  sources: string[];
 }
 
-export function ContactForm({ onAdd, sources }: ContactFormProps) {
+export function ContactForm({ onAdd }: ContactFormProps) {
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [estado, setEstado] = useState<ContactEstado>('consulta');
@@ -73,18 +72,18 @@ export function ContactForm({ onAdd, sources }: ContactFormProps) {
           </option>
         ))}
       </select>
-      <input
+      <select
         value={fuente}
         onChange={(e) => setFuente(e.target.value)}
-        placeholder="Fuente (ej: Reel sillas, Google Ads)"
-        list="fuentes-sugeridas"
-        className="rounded-[10px] border border-border bg-bg-elevated px-3 py-2 text-sm text-text placeholder:text-text-muted focus:border-primary-bright focus:outline-none"
-      />
-      <datalist id="fuentes-sugeridas">
-        {sources.map((s) => (
-          <option key={s} value={s} />
+        className="rounded-[10px] border border-border bg-bg-elevated px-3 py-2 text-sm text-text focus:border-primary-bright focus:outline-none"
+      >
+        <option value="">Fuente (elegí una)</option>
+        {FUENTES.map((f) => (
+          <option key={f} value={f}>
+            {f}
+          </option>
         ))}
-      </datalist>
+      </select>
       <input
         value={observacion}
         onChange={(e) => setObservacion(e.target.value)}

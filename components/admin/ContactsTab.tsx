@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { distinctSources, ESTADOS, ESTADO_LABEL, type Contact, type Seller } from '@/lib/calc';
+import { distinctSources, ESTADOS, ESTADO_LABEL, FUENTES, type Contact, type Seller } from '@/lib/calc';
 import type { ContactEstado } from '@/lib/database.types';
 
 interface ContactsTabProps {
@@ -14,7 +14,7 @@ export function ContactsTab({ contacts, sellers }: ContactsTabProps) {
   const [estadoFilter, setEstadoFilter] = useState<ContactEstado | 'todos'>('todos');
   const [fuenteFilter, setFuenteFilter] = useState<string>('todas');
   const sellersById = Object.fromEntries(sellers.map((s) => [s.id, s]));
-  const sources = useMemo(() => distinctSources(contacts), [contacts]);
+  const sources = useMemo(() => [...new Set<string>([...FUENTES, ...distinctSources(contacts)])], [contacts]);
 
   const filtered = useMemo(
     () =>
