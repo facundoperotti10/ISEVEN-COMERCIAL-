@@ -40,7 +40,7 @@ export const ESTADOS: { value: ContactEstado; label: string }[] = [
 ];
 
 /** Fuentes de contacto: de dónde llegó el cliente. Lista fija (desplegable). */
-export const FUENTES = ['TikTok', 'Instagram', 'WhatsApp', 'Referido'] as const;
+export const FUENTES = ['TikTok', 'Instagram', 'WhatsApp', 'Referido', 'Anuncios (Ads)'] as const;
 
 /**
  * Opciones del desplegable de fuente. Si un cliente viejo tiene una fuente
