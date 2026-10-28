@@ -30,6 +30,9 @@ const USERS = [
   { email: 'agus@iseven.app', password: 'AP1234567', role: 'seller', seller_id: 'agus', display_name: 'Agus' },
   { email: 'mateo@iseven.app', password: 'ML1234567', role: 'seller', seller_id: 'mateo', display_name: 'Mateo' },
   { email: 'fran@iseven.app', password: 'FC1234567', role: 'seller', seller_id: 'fran', display_name: 'Fran' },
+  { email: 'emi@iseven.app', password: 'EH1234567', role: 'seller', seller_id: null, staff_id: 'emi', display_name: 'Emi' },
+  { email: 'sofi@iseven.app', password: 'SB1234567', role: 'seller', seller_id: null, staff_id: 'sofi', display_name: 'Sofi' },
+  { email: 'santi@iseven.app', password: 'SP1234567', role: 'seller', seller_id: null, staff_id: 'santi', display_name: 'Santi' },
   { email: 'admin@iseven.app', password: 'FM2025', role: 'admin', seller_id: null, display_name: 'Panel de control' },
 ];
 
@@ -57,6 +60,7 @@ async function upsertUser(u) {
     id: user.id,
     role: u.role,
     seller_id: u.seller_id,
+    ...(u.staff_id !== undefined || u.seller_id ? { staff_id: u.staff_id ?? u.seller_id } : {}),
     display_name: u.display_name,
   });
   if (profileErr) throw profileErr;

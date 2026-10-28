@@ -19,6 +19,10 @@ import { RankingTab } from '@/components/admin/RankingTab';
 import { WeekTab } from '@/components/admin/WeekTab';
 import { HistoryTab } from '@/components/admin/HistoryTab';
 import { GoalsTab } from '@/components/admin/GoalsTab';
+import { AsistenciaTab } from '@/components/admin/AsistenciaTab';
+import { StockAdminTab } from '@/components/admin/StockAdminTab';
+import { EquipoAdminTab } from '@/components/admin/EquipoAdminTab';
+import type { ClockEvent, SaturdayShift, Staff, StockRequest, Task, TaskTemplate } from '@/lib/oficina';
 
 const TABS = [
   { id: 'resumen', label: 'Resumen' },
@@ -29,6 +33,9 @@ const TABS = [
   { id: 'semana', label: 'Semana' },
   { id: 'historico', label: 'Histórico' },
   { id: 'objetivos', label: 'Objetivos' },
+  { id: 'asistencia', label: 'Asistencia' },
+  { id: 'stock', label: 'Stock' },
+  { id: 'equipo', label: 'Equipo' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -38,9 +45,24 @@ interface AdminDashboardProps {
   initialPeriod: Period;
   initialContacts: Contact[];
   initialHistory: PeriodHistoryRow[];
+  oficina: {
+    today: string;
+    staff: Staff[];
+    events: ClockEvent[];
+    tasks: Task[];
+    templates: TaskTemplate[];
+    stock: StockRequest[];
+    shifts: SaturdayShift[];
+  };
 }
 
-export function AdminDashboard({ initialSellers, initialPeriod, initialContacts, initialHistory }: AdminDashboardProps) {
+export function AdminDashboard({ initialSellers, initialPeriod, initialContacts, initialHistory, oficina }: AdminDashboardProps) {
+  const [staff, setStaff] = useState<Staff[]>(oficina.staff);
+  const [events, setEvents] = useState<ClockEvent[]>(oficina.events);
+  const [tasks, setTasks] = useState<Task[]>(oficina.tasks);
+  const [templates, setTemplates] = useState<TaskTemplate[]>(oficina.templates);
+  const [stock, setStock] = useState<StockRequest[]>(oficina.stock);
+  const stockPend = stock.filter((r) => r.status === 'pendiente' && r.trip_date >= oficina.today).length;
   const [sellers, setSellers] = useState<Seller[]>(initialSellers);
   const [period, setPeriod] = useState<Period>(initialPeriod);
   const contacts = initialContacts;
@@ -78,6 +100,9 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
             }`}
           >
             {t.label}
+            {t.id === 'stock' && stockPend > 0 && (
+              <span className="ml-1.5 rounded-full bg-orange px-1.5 text-[10px] font-bold text-bg">{stockPend}</span>
+            )}
           </button>
         ))}
       </nav>
@@ -103,6 +128,31 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
           onSellersChange={setSellers}
           onPeriodChange={setPeriod}
           supabase={supabase}
+        />
+      )}
+      {tab === 'asistencia' && (
+        <AsistenciaTab
+          staff={staff}
+          events={events}
+          today={oficina.today}
+          supabase={supabase}
+          onEventsChange={(e) => setEvents([...e].sort((a, b) => a.at.localeCompare(b.at)))}
+        />
+      )}
+      {tab === 'stock' && (
+        <StockAdminTab staff={staff} requests={stock} today={oficina.today} supabase={supabase} onChange={setStock} />
+      )}
+      {tab === 'equipo' && (
+        <EquipoAdminTab
+          staff={staff}
+          tasks={tasks}
+          templates={templates}
+          shifts={oficina.shifts}
+          today={oficina.today}
+          supabase={supabase}
+          onStaffChange={setStaff}
+          onTasksChange={setTasks}
+          onTemplatesChange={setTemplates}
         />
       )}
     </main>

@@ -119,3 +119,32 @@ actual vs. necesario, semáforo, embudo, diagnóstico automático por
 vendedor, proyección de cierre del equipo y comparación semana a semana.
 Nada de esto está hardcodeado — se deriva siempre de `contacts`, `sellers` y
 `period`.
+
+## Oficina: ingreso y egreso, tareas, stock y sábados
+
+Suma a la misma app el fichaje desde el iPhone de la oficina, las tareas del
+día de cada integrante, los pedidos de stock agrupados por viaje y los turnos
+del sábado.
+
+### Puesta en marcha (una sola vez)
+
+1. **Usuarios nuevos.** En Supabase → Authentication → Users → *Add user*,
+   crear con *Auto confirm* tildado:
+   `emi@iseven.app`, `sofi@iseven.app` y `santi@iseven.app`, cada uno con su contraseña.
+2. **Base de datos.** En el SQL editor, correr
+   `supabase/migrations/2026-11-oficina.sql`. Crea las tablas, carga el equipo
+   y sus tareas fijas, y vincula los usuarios nuevos. Se puede volver a correr.
+3. **PINs y horarios.** Panel de control → Equipo → *PIN, horarios y tareas fijas*.
+4. **Reloj de fichaje.** En el iPhone 13 de la oficina: entrar al Panel de
+   control → Asistencia → *Activar este dispositivo como reloj* → cerrar sesión.
+   Desde ahí, *Ingreso y egreso* (en la pantalla de inicio) funciona solo en ese teléfono.
+
+### Reglas
+
+- 4 marcas por día: entrada, me voy a comer, vuelvo de comer y salida, con PIN y selfie.
+- Tolerancia de 5 minutos a la entrada y a la vuelta de comer (1 hora de comida).
+- Cada 3 llegadas tarde en el mes se descuentan USD 20.
+- Fotos privadas (solo el panel de control), se borran a los 60 días.
+- Stock: lo de mañana se carga hasta las 23:00 (viaje de las 10:00); lo de hoy
+  hasta las 14:00 (viaje de las 15:00); después del corte, solo urgente.
+- Recordatorio en la app a partir de las 16:30 si quedan tareas sin marcar.

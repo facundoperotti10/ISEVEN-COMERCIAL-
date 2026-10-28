@@ -5,6 +5,9 @@ export const SELLER_LOGINS = [
   { id: 'agus', name: 'Agus', email: 'agus@iseven.app' },
   { id: 'mateo', name: 'Mateo', email: 'mateo@iseven.app' },
   { id: 'fran', name: 'Fran', email: 'fran@iseven.app' },
+  { id: 'emi', name: 'Emi', email: 'emi@iseven.app' },
+  { id: 'sofi', name: 'Sofi', email: 'sofi@iseven.app' },
+  { id: 'santi', name: 'Santi', email: 'santi@iseven.app' },
 ] as const;
 
 export const ADMIN_LOGIN = { name: 'Panel de control', email: 'admin@iseven.app' } as const;

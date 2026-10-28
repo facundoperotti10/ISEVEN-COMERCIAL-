@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/ui/LogoutButton';
 import { KpiCard } from '@/components/ui/KpiCard';
@@ -194,7 +195,15 @@ export function VendedorDashboard({
           <h1 className="font-display text-xl font-bold text-text">Hola, {sellerName}</h1>
           <p className="text-xs text-text-muted">{period.name}</p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/equipo"
+            className="rounded-full bg-orange px-3 py-1.5 text-xs font-semibold text-bg transition hover:brightness-110"
+          >
+            Oficina: tareas, stock y sábados
+          </Link>
+          <LogoutButton />
+        </div>
       </header>
 
       <div className="flex flex-col gap-4">

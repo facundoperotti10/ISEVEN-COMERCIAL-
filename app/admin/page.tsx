@@ -2,6 +2,8 @@ import { requireAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAll } from '@/lib/fetch-all';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import { todayAR } from '@/lib/calc';
+import { STAFF_COLUMNS, dateARPlus, monthRange } from '@/lib/oficina';
 
 export default async function AdminPage() {
   await requireAdmin();
@@ -10,7 +12,22 @@ export default async function AdminPage() {
   // Si el mes ya terminó, lo cierra y arranca el siguiente (también corre solo cada noche).
   await supabase.rpc('auto_rollover_period');
 
-  const [{ data: sellers }, { data: period }, contacts, { data: history }] = await Promise.all([
+  const today = todayAR();
+  const month = monthRange(today);
+  await supabase.rpc('ensure_tasks', {});
+
+  const [
+    { data: sellers },
+    { data: period },
+    contacts,
+    { data: history },
+    { data: staff },
+    { data: events },
+    { data: tasks },
+    { data: templates },
+    { data: stock },
+    { data: shifts },
+  ] = await Promise.all([
     supabase.from('sellers').select('*').order('created_at', { ascending: true }),
     supabase.from('period').select('*').eq('id', 1).single(),
     fetchAll((from, to) =>
@@ -22,6 +39,12 @@ export default async function AdminPage() {
         .range(from, to)
     ),
     supabase.from('period_history').select('*').order('start_date', { ascending: false }),
+    supabase.from('staff').select(STAFF_COLUMNS).eq('active', true).order('sort'),
+    supabase.from('clock_events').select('*').gte('work_date', month.start).lte('work_date', month.end).order('at'),
+    supabase.from('tasks').select('*').eq('date', today).order('created_at'),
+    supabase.from('task_templates').select('*').order('sort'),
+    supabase.from('stock_requests').select('*').gte('trip_date', dateARPlus(-14)).order('trip_date'),
+    supabase.from('saturday_shifts').select('*').gte('date', today).order('date'),
   ]);
 
   if (!period) {
@@ -38,6 +61,15 @@ export default async function AdminPage() {
       initialPeriod={period}
       initialContacts={contacts}
       initialHistory={history ?? []}
+      oficina={{
+        today,
+        staff: staff ?? [],
+        events: events ?? [],
+        tasks: tasks ?? [],
+        templates: templates ?? [],
+        stock: stock ?? [],
+        shifts: shifts ?? [],
+      }}
     />
   );
 }

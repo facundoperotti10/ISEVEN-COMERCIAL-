@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { ADMIN_LOGIN, LAST_LOGIN_KEY, SELLER_LOGINS } from '@/lib/login-config';
@@ -91,6 +92,12 @@ export function LoginScreen() {
               >
                 Panel de control
               </button>
+              <Link
+                href="/fichaje"
+                className="mt-4 block w-full rounded-[10px] bg-orange px-4 py-3 text-center font-semibold text-bg transition hover:brightness-110"
+              >
+                Ingreso y egreso
+              </Link>
             </div>
           </div>
         ) : (

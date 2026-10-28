@@ -6,6 +6,7 @@ export interface SessionProfile {
   userId: string;
   role: UserRole;
   sellerId: string | null;
+  staffId: string | null;
   displayName: string | null;
 }
 
@@ -19,7 +20,7 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, seller_id, display_name')
+    .select('role, seller_id, staff_id, display_name')
     .eq('id', user.id)
     .single();
 
@@ -29,6 +30,7 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
     userId: user.id,
     role: profile.role,
     sellerId: profile.seller_id,
+    staffId: profile.staff_id,
     displayName: profile.display_name,
   };
 }
@@ -47,6 +49,22 @@ export async function requireAdmin(): Promise<SessionProfile> {
 
 export async function requireSeller(): Promise<SessionProfile> {
   const profile = await requireProfile();
-  if (profile.role !== 'seller' || !profile.sellerId) redirect('/admin');
+  if (profile.role !== 'seller') redirect('/admin');
+  if (!profile.sellerId) redirect(profile.staffId ? '/equipo' : '/login');
   return profile;
+}
+
+/** Integrante del equipo (vendedores, mayorista, marketing, técnico). */
+export async function requireStaff(): Promise<SessionProfile> {
+  const profile = await requireProfile();
+  if (profile.role === 'admin') redirect('/admin');
+  if (!profile.staffId) redirect('/vendedor');
+  return profile;
+}
+
+/** Ruta de inicio según el perfil. */
+export function homePath(profile: SessionProfile): string {
+  if (profile.role === 'admin') return '/admin';
+  if (profile.sellerId) return '/vendedor';
+  return '/equipo';
 }
