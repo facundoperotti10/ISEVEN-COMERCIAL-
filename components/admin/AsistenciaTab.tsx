@@ -44,6 +44,22 @@ export function AsistenciaTab({ staff, events, today, supabase, onEventsChange }
   const [msg, setMsg] = useState<string | null>(null);
   const [day, setDay] = useState(today);
   const [now, setNow] = useState(() => Date.now());
+  const [devices, setDevices] = useState<{ id: string; name: string; active: boolean; created_at: string }[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from('kiosk_devices')
+      .select('id, name, active, created_at')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setDevices(data ?? []));
+  }, [supabase]);
+
+  async function deactivate(id: string) {
+    const { error } = await supabase.from('kiosk_devices').update({ active: false }).eq('id', id);
+    if (error) return setMsg(errorMessage(error));
+    setDevices((d) => d.map((x) => (x.id === id ? { ...x, active: false } : x)));
+    setMsg('Dispositivo dado de baja: desde ahí ya no se puede fichar.');
+  }
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
@@ -96,8 +112,13 @@ export function AsistenciaTab({ staff, events, today, supabase, onEventsChange }
   });
 
   async function activateDevice() {
-    const { data, error } = await supabase.rpc('register_kiosk', { p_name: 'iPhone oficina' });
+    const { data, error } = await supabase.rpc('register_kiosk', { p_name: 'iPhone 13 oficina' });
     if (error) return setMsg(errorMessage(error));
+    const { data: list } = await supabase
+      .from('kiosk_devices')
+      .select('id, name, active, created_at')
+      .order('created_at', { ascending: false });
+    setDevices(list ?? []);
     try {
       window.localStorage.setItem(KIOSK_TOKEN_KEY, data as string);
       setMsg('Listo: este dispositivo quedó activado como reloj. Cerrá sesión y entrá a “Ingreso y egreso”.');
@@ -231,6 +252,28 @@ export function AsistenciaTab({ staff, events, today, supabase, onEventsChange }
           <button onClick={activateDevice} className="mt-3 rounded-[10px] bg-orange px-4 py-2.5 text-sm font-semibold text-bg">
             Activar este dispositivo como reloj
           </button>
+          <div className="mt-4">
+            <p className="mb-2 text-xs uppercase tracking-wide text-text-muted">Dispositivos habilitados para fichar</p>
+            {devices.filter((d) => d.active).length === 0 ? (
+              <p className="text-sm text-text-muted">Ninguno todavía.</p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {devices
+                  .filter((d) => d.active)
+                  .map((d) => (
+                    <li key={d.id} className="flex items-center justify-between gap-2 rounded-[8px] bg-bg-elevated px-3 py-2 text-sm">
+                      <span className="min-w-0">
+                        {d.name}
+                        <span className="block text-[11px] text-text-muted">Activado {fechaLarga(d.created_at.slice(0, 10))}</span>
+                      </span>
+                      <button onClick={() => deactivate(d.id)} className="text-xs text-text-muted hover:text-red">
+                        Dar de baja
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
           <p className="mt-3 text-xs text-text-muted">Las fotos son privadas y se borran solas a los 60 días.</p>
         </section>
       </div>

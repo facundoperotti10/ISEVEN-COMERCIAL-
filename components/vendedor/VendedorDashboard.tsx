@@ -13,7 +13,7 @@ import { SalesLineChart } from '@/components/ui/SalesLineChart';
 import { BonusCard } from '@/components/vendedor/BonusCard';
 import { RespondidosCard } from '@/components/vendedor/RespondidosCard';
 import { ContactForm } from '@/components/vendedor/ContactForm';
-import { ContactsList } from '@/components/vendedor/ContactsList';
+import { ClientsFolder } from '@/components/vendedor/ClientsFolder';
 import { DailyReportCard } from '@/components/vendedor/DailyReportCard';
 import { SeguimientoReminder } from '@/components/vendedor/SeguimientoReminder';
 import { SaleCelebration, type CelebrationTrigger } from '@/components/vendedor/SaleCelebration';
@@ -21,7 +21,6 @@ import { TeamRanking } from '@/components/vendedor/TeamRanking';
 import {
   buildSellerMetrics,
   buildTeamRanking,
-  ESTADOS,
   salesByDay,
   seguimientosPendientes,
   type Contact,
@@ -59,8 +58,7 @@ export function VendedorDashboard({
   sellerName,
 }: VendedorDashboardProps) {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
-  const [dateFilter, setDateFilter] = useState<'all' | string>('all');
-  const [estadoFilter, setEstadoFilter] = useState<'todos' | ContactEstado>('todos');
+  const [tab, setTab] = useState<'hoy' | 'clientes' | 'progreso'>('hoy');
   const [celebration, setCelebration] = useState<CelebrationTrigger | null>(null);
   const dismissCelebration = useCallback(() => setCelebration(null), []);
   const supabase = useMemo(() => createClient(), []);
@@ -82,15 +80,7 @@ export function VendedorDashboard({
       )
       .sort((a, b) => b.cumplimientoPct - a.cumplimientoPct);
   }, [initialRanking, seller.id, metrics.currentSales, metrics.cumplimientoPct]);
-  const filteredContacts = useMemo(
-    () =>
-      contacts.filter(
-        (c) =>
-          (dateFilter === 'all' || c.date === dateFilter) &&
-          (estadoFilter === 'todos' || c.estado === estadoFilter)
-      ),
-    [contacts, dateFilter, estadoFilter]
-  );
+  const todayCount = useMemo(() => contacts.filter((c) => c.date === today).length, [contacts, today]);
 
   async function handleAdd(data: {
     nombre: string;
@@ -196,131 +186,111 @@ export function VendedorDashboard({
           <h1 className="font-display text-xl font-bold text-text">Hola, {sellerName}</h1>
           <p className="text-xs text-text-muted">{period.name}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/equipo"
-            className="rounded-full bg-orange px-3 py-1.5 text-xs font-semibold text-bg transition hover:brightness-110"
-          >
-            Oficina: tareas, stock y sábados
-          </Link>
-          <LogoutButton />
-        </div>
+        <LogoutButton />
       </header>
 
       <OficinaEnVivo />
 
-      <div className="flex flex-col gap-4">
-        <BonusCard
-          bonusUsd={seller.bonus_usd}
-          currentSales={metrics.currentSales}
-          target={seller.target}
-          remainingSales={metrics.remainingSales}
-        />
+      <nav className="mb-5 flex flex-wrap gap-2 border-b border-border pb-3">
+        {(
+          [
+            ['hoy', 'Hoy'],
+            ['clientes', `Clientes (${contacts.length})`],
+            ['progreso', 'Mi progreso'],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+              tab === id ? 'bg-primary-bright text-bg' : 'text-text-secondary hover:bg-bg-elevated hover:text-text'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <Link
+          href="/equipo"
+          className="rounded-full px-3.5 py-1.5 text-sm font-medium text-text-secondary transition hover:bg-bg-elevated hover:text-text"
+        >
+          Oficina: tareas, stock y sábados →
+        </Link>
+      </nav>
 
-        <SeguimientoReminder pendientes={pendientes} onUpdate={handleUpdate} />
+      {tab === 'hoy' && (
+        <div className="flex flex-col gap-4">
+          <BonusCard
+            bonusUsd={seller.bonus_usd}
+            currentSales={metrics.currentSales}
+            target={seller.target}
+            remainingSales={metrics.remainingSales}
+          />
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <KpiCard label="Objetivo" value={seller.target} />
-          <KpiCard label="Ventas actuales" value={metrics.currentSales} accent="#2C8598" />
-          <KpiCard label="Faltantes" value={metrics.remainingSales} accent="#FF8123" />
-          <KpiCard label="Proyección al cierre" value={Math.round(metrics.proyeccionCierre)} />
-        </div>
+          <SeguimientoReminder pendientes={pendientes} onUpdate={handleUpdate} />
 
-        <RespondidosCard respondidos={metrics.respondidos} convRespondidos={metrics.convRespondidos} />
-
-        <TeamRanking ranking={ranking} currentSellerId={seller.id} />
-
-        <div className="card p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs text-text-secondary">Progreso hacia el objetivo</span>
-            <SemaforoBadge semaforo={metrics.semaforo} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <KpiCard label="Objetivo" value={seller.target} />
+            <KpiCard label="Ventas actuales" value={metrics.currentSales} accent="#2C8598" />
+            <KpiCard label="Faltantes" value={metrics.remainingSales} accent="#FF8123" />
+            <KpiCard label="Proyección al cierre" value={Math.round(metrics.proyeccionCierre)} />
           </div>
-          <ProgressBar value={metrics.cumplimientoPct} color="#2C8598" />
-          <div className="mt-4">
-            <PaceGauge
-              paceActual={metrics.paceActual}
-              paceNeeded={metrics.paceNeeded}
-              semaforo={metrics.semaforo}
-              label="Ritmo de ventas"
-            />
+
+          <div className="card p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-display text-sm font-bold text-text">Cargar cliente de hoy</h2>
+              <button onClick={() => setTab('clientes')} className="text-xs text-text-secondary underline underline-offset-4">
+                Hoy cargaste {todayCount} · Ver todos mis clientes
+              </button>
+            </div>
+            <ContactForm onAdd={handleAdd} />
           </div>
         </div>
+      )}
 
+      {tab === 'clientes' && (
         <div className="card p-4">
-          <h2 className="mb-3 font-display text-sm font-bold text-text">Cargar cliente de hoy</h2>
-          <ContactForm onAdd={handleAdd} />
+          <h2 className="mb-3 font-display text-sm font-bold text-text">Mis clientes</h2>
+          <ClientsFolder contacts={contacts} today={today} onUpdate={handleUpdate} onDelete={handleDelete} />
         </div>
+      )}
 
-        <div className="card p-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-display text-sm font-bold text-text">Mis clientes</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setDateFilter('all')}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                  dateFilter === 'all'
-                    ? 'bg-primary-bright text-bg'
-                    : 'bg-bg-elevated text-text-secondary hover:text-text'
-                }`}
-              >
-                Todos los días
-              </button>
-              <button
-                onClick={() => setDateFilter(today)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                  dateFilter === today
-                    ? 'bg-primary-bright text-bg'
-                    : 'bg-bg-elevated text-text-secondary hover:text-text'
-                }`}
-              >
-                Hoy
-              </button>
-              <input
-                type="date"
-                value={dateFilter === 'all' ? '' : dateFilter}
-                onChange={(e) => setDateFilter(e.target.value || 'all')}
-                className="rounded-[10px] border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text focus:border-primary-bright focus:outline-none"
+      {tab === 'progreso' && (
+        <div className="flex flex-col gap-4">
+          <div className="card p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs text-text-secondary">Progreso hacia el objetivo</span>
+              <SemaforoBadge semaforo={metrics.semaforo} />
+            </div>
+            <ProgressBar value={metrics.cumplimientoPct} color="#2C8598" />
+            <div className="mt-4">
+              <PaceGauge
+                paceActual={metrics.paceActual}
+                paceNeeded={metrics.paceNeeded}
+                semaforo={metrics.semaforo}
+                label="Ritmo de ventas"
               />
-              <select
-                value={estadoFilter}
-                onChange={(e) => setEstadoFilter(e.target.value as 'todos' | ContactEstado)}
-                className="rounded-[10px] border border-border bg-bg-elevated px-3 py-1.5 text-xs text-text focus:border-primary-bright focus:outline-none"
-              >
-                <option value="todos">Todos los estados</option>
-                {ESTADOS.map((e) => (
-                  <option key={e.value} value={e.value}>
-                    {e.label}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
-          <ContactsList
-            contacts={filteredContacts}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
-            emptyMessage={
-              dateFilter === 'all' && estadoFilter === 'todos'
-                ? 'Todavía no cargaste clientes.'
-                : 'No hay clientes que coincidan con el filtro.'
-            }
+
+          <RespondidosCard respondidos={metrics.respondidos} convRespondidos={metrics.convRespondidos} />
+
+          <TeamRanking ranking={ranking} currentSellerId={seller.id} />
+
+          <div className="card p-4">
+            <h2 className="mb-3 font-display text-sm font-bold text-text">Ventas por día</h2>
+            <SalesLineChart data={dailySales} />
+          </div>
+
+          <DailyReportCard
+            seller={seller}
+            sellerName={sellerName}
+            period={period}
+            metrics={metrics}
+            contacts={contacts}
+            today={today}
           />
         </div>
-
-        <DailyReportCard
-          seller={seller}
-          sellerName={sellerName}
-          period={period}
-          metrics={metrics}
-          contacts={contacts}
-          today={today}
-        />
-
-        <div className="card p-4">
-          <h2 className="mb-3 font-display text-sm font-bold text-text">Ventas por día</h2>
-          <SalesLineChart data={dailySales} />
-        </div>
-      </div>
+      )}
     </main>
   );
 }

@@ -40,6 +40,7 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
+const OFICINA_TABS: readonly TabId[] = ['asistencia', 'stock', 'equipo'];
 
 interface AdminDashboardProps {
   initialSellers: Seller[];
@@ -91,22 +92,32 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
 
       <OficinaEnVivo />
 
-      <nav className="mb-6 flex flex-wrap gap-2 border-b border-border pb-3">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
-              tab === t.id
-                ? 'bg-primary-bright text-bg'
-                : 'text-text-secondary hover:bg-bg-elevated hover:text-text'
-            }`}
-          >
-            {t.label}
-            {t.id === 'stock' && stockPend > 0 && (
-              <span className="ml-1.5 rounded-full bg-orange px-1.5 text-[10px] font-bold text-bg">{stockPend}</span>
-            )}
-          </button>
+      <nav className="mb-6 flex flex-col gap-2 border-b border-border pb-3">
+        {(
+          [
+            ['Ventas', TABS.filter((t) => !OFICINA_TABS.includes(t.id))],
+            ['Oficina', TABS.filter((t) => OFICINA_TABS.includes(t.id))],
+          ] as const
+        ).map(([group, list]) => (
+          <div key={group} className="flex flex-wrap items-center gap-2">
+            <span className="w-16 text-[11px] uppercase tracking-wide text-text-muted">{group}</span>
+            {list.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                  tab === t.id
+                    ? 'bg-primary-bright text-bg'
+                    : 'text-text-secondary hover:bg-bg-elevated hover:text-text'
+                }`}
+              >
+                {t.label}
+                {t.id === 'stock' && stockPend > 0 && (
+                  <span className="ml-1.5 rounded-full bg-orange px-1.5 text-[10px] font-bold text-bg">{stockPend}</span>
+                )}
+              </button>
+            ))}
+          </div>
         ))}
       </nav>
 
