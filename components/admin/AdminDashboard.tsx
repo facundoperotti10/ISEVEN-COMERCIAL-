@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/ui/LogoutButton';
+import { OficinaEnVivo } from '@/components/oficina/OficinaEnVivo';
 import {
   buildSellerMetrics,
   buildTeamAverages,
@@ -87,6 +88,8 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
         </div>
         <LogoutButton />
       </header>
+
+      <OficinaEnVivo />
 
       <nav className="mb-6 flex flex-wrap gap-2 border-b border-border pb-3">
         {TABS.map((t) => (

@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { OficinaEnVivo } from '@/components/oficina/OficinaEnVivo';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/ui/LogoutButton';
 import { KpiCard } from '@/components/ui/KpiCard';
@@ -205,6 +206,8 @@ export function VendedorDashboard({
           <LogoutButton />
         </div>
       </header>
+
+      <OficinaEnVivo />
 
       <div className="flex flex-col gap-4">
         <BonusCard

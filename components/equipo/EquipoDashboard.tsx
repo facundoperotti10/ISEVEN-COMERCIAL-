@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { OficinaEnVivo } from '@/components/oficina/OficinaEnVivo';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/ui/LogoutButton';
 import { TaskList } from '@/components/oficina/TaskList';
@@ -111,6 +112,8 @@ export function EquipoDashboard({ me, staff, initialTasks, events, initialStock,
           <LogoutButton />
         </div>
       </header>
+
+      <OficinaEnVivo />
 
       {showReminder && (
         <div className="mb-4 rounded-[12px] border border-pink/40 bg-pink/10 px-4 py-3 text-sm text-pink">

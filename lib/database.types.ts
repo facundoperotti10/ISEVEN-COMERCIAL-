@@ -332,6 +332,7 @@ export interface Database {
         Returns: unknown;
       };
       ensure_tasks: { Args: { p_date?: string }; Returns: undefined };
+      office_live: { Args: Record<string, never>; Returns: unknown };
       close_period: {
         Args: { new_name: string; new_start: string; new_end: string };
         Returns: undefined;
