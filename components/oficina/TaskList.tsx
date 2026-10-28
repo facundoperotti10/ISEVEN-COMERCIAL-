@@ -53,11 +53,10 @@ export function TaskList({ tasks, canToggle, canAdd, onToggle, onAdd, onDelete, 
             <span className="min-w-0 flex-1">
               <span className={`block text-sm ${t.done_at ? 'text-text-muted line-through' : 'text-text'}`}>{t.title}</span>
               <span className="text-[11px] text-text-muted">
-                {t.source === 'extra' ? 'Extra' : 'Fija'}
-                {t.done_at ? ` · hecha ${horaAR(t.done_at)}` : ''}
+                {t.done_at ? `Hecha ${horaAR(t.done_at)}` : 'Pendiente'}
               </span>
             </span>
-            {onDelete && t.source === 'extra' && (
+            {onDelete && (
               <button onClick={() => onDelete(t)} className="text-xs text-text-muted hover:text-red" aria-label={`Borrar ${t.title}`}>
                 Borrar
               </button>
@@ -79,7 +78,7 @@ export function TaskList({ tasks, canToggle, canAdd, onToggle, onAdd, onDelete, 
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Agregar tarea extra"
+            placeholder="Nueva tarea"
             className="min-w-0 flex-1 rounded-[10px] border border-border bg-bg-elevated px-3 py-2 text-sm placeholder:text-text-muted focus:border-primary-bright focus:outline-none"
           />
           <button className="rounded-[10px] bg-primary-bright px-3 py-2 text-sm font-medium text-bg">Agregar</button>

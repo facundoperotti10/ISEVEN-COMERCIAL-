@@ -62,7 +62,6 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
   const [staff, setStaff] = useState<Staff[]>(oficina.staff);
   const [events, setEvents] = useState<ClockEvent[]>(oficina.events);
   const [tasks, setTasks] = useState<Task[]>(oficina.tasks);
-  const [templates, setTemplates] = useState<TaskTemplate[]>(oficina.templates);
   const [stock, setStock] = useState<StockRequest[]>(oficina.stock);
   const stockPend = stock.filter((r) => r.status === 'pendiente' && r.trip_date >= oficina.today).length;
   const [sellers, setSellers] = useState<Seller[]>(initialSellers);
@@ -160,13 +159,11 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
         <EquipoAdminTab
           staff={staff}
           tasks={tasks}
-          templates={templates}
           shifts={oficina.shifts}
           today={oficina.today}
           supabase={supabase}
           onStaffChange={setStaff}
           onTasksChange={setTasks}
-          onTemplatesChange={setTemplates}
         />
       )}
     </main>

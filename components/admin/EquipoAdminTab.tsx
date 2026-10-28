@@ -12,31 +12,26 @@ import {
   type SaturdayShift,
   type Staff,
   type Task,
-  type TaskTemplate,
 } from '@/lib/oficina';
 
 interface Props {
   staff: Staff[];
   tasks: Task[];
-  templates: TaskTemplate[];
   shifts: SaturdayShift[];
   today: string;
   supabase: SupabaseClient<Database>;
   onStaffChange: (s: Staff[]) => void;
   onTasksChange: (t: Task[]) => void;
-  onTemplatesChange: (t: TaskTemplate[]) => void;
 }
 
 export function EquipoAdminTab({
   staff,
   tasks,
-  templates,
   shifts,
   today,
   supabase,
   onStaffChange,
   onTasksChange,
-  onTemplatesChange,
 }: Props) {
   const [msg, setMsg] = useState<string | null>(null);
   const [section, setSection] = useState<'tareas' | 'sabados' | 'config'>('tareas');
@@ -59,9 +54,9 @@ export function EquipoAdminTab({
       <div className="flex flex-wrap gap-2">
         {(
           [
-            ['tareas', 'Tareas de hoy'],
+            ['tareas', 'Tareas'],
             ['sabados', 'Sábados'],
-            ['config', 'PIN, horarios y tareas fijas'],
+            ['config', 'PIN y horarios'],
           ] as const
         ).map(([id, label]) => (
           <button
@@ -127,10 +122,8 @@ export function EquipoAdminTab({
             <StaffConfig
               key={s.id}
               s={s}
-              templates={templates.filter((t) => t.staff_id === s.id)}
               supabase={supabase}
               onStaff={(ns) => onStaffChange(staff.map((x) => (x.id === ns.id ? ns : x)))}
-              onTemplates={(list) => onTemplatesChange([...templates.filter((t) => t.staff_id !== s.id), ...list])}
               onMsg={setMsg}
             />
           ))}
@@ -142,23 +135,17 @@ export function EquipoAdminTab({
 
 function StaffConfig({
   s,
-  templates,
   supabase,
   onStaff,
-  onTemplates,
   onMsg,
 }: {
   s: Staff;
-  templates: TaskTemplate[];
   supabase: SupabaseClient<Database>;
   onStaff: (s: Staff) => void;
-  onTemplates: (t: TaskTemplate[]) => void;
   onMsg: (m: string) => void;
 }) {
   const [pin, setPin] = useState('');
   const [start, setStart] = useState(s.start_time.slice(0, 5));
-  const [newTask, setNewTask] = useState('');
-  const active = templates.filter((t) => t.active).sort((a, b) => a.sort - b.sort);
   const input = 'rounded-[10px] border border-border bg-bg-elevated px-3 py-2 text-sm';
 
   async function savePin() {
@@ -174,25 +161,6 @@ function StaffConfig({
     if (error) return onMsg(errorMessage(error));
     onStaff({ ...s, start_time: start });
     onMsg(`${s.name} entra a las ${start}.`);
-  }
-
-  async function addTemplate() {
-    const title = newTask.trim();
-    if (!title) return;
-    const { data, error } = await supabase
-      .from('task_templates')
-      .insert({ staff_id: s.id, title, sort: active.length + 1 })
-      .select()
-      .single();
-    if (error) return onMsg(errorMessage(error));
-    setNewTask('');
-    onTemplates([...templates, data]);
-  }
-
-  async function removeTemplate(t: TaskTemplate) {
-    const { error } = await supabase.from('task_templates').update({ active: false }).eq('id', t.id);
-    if (error) return onMsg(errorMessage(error));
-    onTemplates(templates.map((x) => (x.id === t.id ? { ...x, active: false } : x)));
   }
 
   return (
@@ -224,32 +192,7 @@ function StaffConfig({
           Guardar
         </button>
       </div>
-      <div>
-        <p className="mb-2 text-xs uppercase tracking-wide text-text-muted">Tareas fijas (aparecen todos los días)</p>
-        <ul className="flex flex-col gap-1.5">
-          {active.map((t) => (
-            <li key={t.id} className="flex justify-between gap-2 rounded-[8px] bg-bg-elevated px-3 py-2 text-sm">
-              <span className="min-w-0">{t.title}</span>
-              <button onClick={() => removeTemplate(t)} className="text-xs text-text-muted hover:text-red">
-                Quitar
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-2 flex gap-2">
-          <input
-            id={`tpl-${s.id}`}
-            value={newTask}
-            onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Nueva tarea fija"
-            className={`${input} min-w-0 flex-1`}
-          />
-          <button onClick={addTemplate} className="rounded-[10px] bg-primary-bright px-3 py-2 text-sm text-bg">
-            Agregar
-          </button>
-        </div>
-        <p className="mt-1 text-[11px] text-text-muted">Los cambios en tareas fijas se ven desde mañana.</p>
-      </div>
+
     </section>
   );
 }
