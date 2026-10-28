@@ -18,11 +18,22 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
 
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from('profiles')
     .select('role, seller_id, staff_id, display_name')
     .eq('id', user.id)
     .single();
+
+  // Si la migración de la oficina todavía no se corrió, la columna staff_id
+  // no existe: se lee el perfil como antes para que el login no se rompa.
+  if (!profile) {
+    const { data: legacy } = await supabase
+      .from('profiles')
+      .select('role, seller_id, display_name')
+      .eq('id', user.id)
+      .single();
+    profile = legacy ? { ...legacy, staff_id: null } : null;
+  }
 
   if (!profile) return null;
 
