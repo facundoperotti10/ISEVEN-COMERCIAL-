@@ -35,6 +35,11 @@ export function StockRequestCard({
         {r.cliente} · {fechaLarga(r.turno_date)}
         {r.turno_time ? ` ${r.turno_time.slice(0, 5)}` : ''} · {r.tipo === 'venta' ? 'Venta segura' : 'Para mostrar'}
       </p>
+      {r.imei && (
+        <p className="mt-1 text-xs text-text-secondary">
+          IMEI terminado en <span className="select-all font-mono font-semibold tracking-wider text-text">{r.imei}</span>
+        </p>
+      )}
       {r.note && <p className="mt-1 text-xs text-text-muted">{r.note}</p>}
       {children && <div className="mt-2 flex flex-wrap gap-2">{children}</div>}
     </div>

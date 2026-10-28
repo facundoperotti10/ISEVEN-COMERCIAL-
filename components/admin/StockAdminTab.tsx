@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, StockStatus, TripSlot } from '@/lib/database.types';
 import { StockRequestCard } from '@/components/oficina/StockRequestCard';
+import { PushToggle } from '@/components/oficina/PushToggle';
 import { SLOT_LABEL, errorMessage, fechaLarga, type Staff, type StockRequest } from '@/lib/oficina';
 
 interface Props {
@@ -19,9 +20,18 @@ const SLOT_ORDER: Record<TripSlot, number> = { urgente: 0, '10:00': 1, '15:00': 
 export function StockAdminTab({ staff, requests, today, supabase, onChange }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [showPast, setShowPast] = useState(false);
+  const [q, setQ] = useState('');
   const nameOf = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
 
-  const visible = requests.filter((r) => (showPast ? true : r.trip_date >= today));
+  const term = q.trim().toLowerCase();
+  const visible = requests.filter(
+    (r) =>
+      (showPast || term ? true : r.trip_date >= today) &&
+      (!term ||
+        (r.imei ?? '').includes(term) ||
+        r.cliente.toLowerCase().includes(term) ||
+        r.modelo.toLowerCase().includes(term))
+  );
   const groups = new Map<string, StockRequest[]>();
   visible
     .slice()
@@ -47,11 +57,19 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange }: Pr
 
   return (
     <div className="flex flex-col gap-4">
+      <PushToggle />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-text-secondary">
           {pendientes ? `${pendientes} pedidos esperando autorización.` : 'No hay pedidos pendientes.'} Lo de mañana se carga hasta
           las 23:00 (viaje de las 10:00). Lo de hoy, hasta las 14:00 (viaje de las 15:00).
         </p>
+        <input
+          id="stock-buscar"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Buscar por IMEI, cliente o modelo"
+          className="min-w-0 flex-1 rounded-[10px] border border-border bg-bg-elevated px-3 py-2 text-sm placeholder:text-text-muted focus:border-primary-bright focus:outline-none sm:max-w-xs"
+        />
         <label className="flex items-center gap-2 text-xs text-text-muted">
           <input id="stock-past" type="checkbox" checked={showPast} onChange={(e) => setShowPast(e.target.checked)} />
           Ver días anteriores

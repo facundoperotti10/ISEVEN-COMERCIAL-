@@ -297,6 +297,8 @@ export interface Database {
           note: string | null;
           decided_by: string | null;
           decided_at: string | null;
+          imei: string | null;
+          group_id: string | null;
           created_at: string;
         },
         {
@@ -315,7 +317,13 @@ export interface Database {
           note?: string | null;
           decided_by?: string | null;
           decided_at?: string | null;
+          imei?: string | null;
+          group_id?: string | null;
         }
+      >;
+      push_subscriptions: TableOf<
+        { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; created_at: string },
+        { endpoint: string; p256dh: string; auth: string; user_id?: string }
       >;
       saturday_shifts: TableOf<
         { id: string; staff_id: string; date: string; start_time: string; end_time: string; note: string | null; created_at: string },
@@ -333,6 +341,8 @@ export interface Database {
       };
       ensure_tasks: { Args: { p_date?: string }; Returns: undefined };
       office_live: { Args: Record<string, never>; Returns: unknown };
+      push_targets_for_stock: { Args: { p_id: string }; Returns: unknown };
+      push_drop: { Args: { p_endpoint: string }; Returns: undefined };
       close_period: {
         Args: { new_name: string; new_start: string; new_end: string };
         Returns: undefined;

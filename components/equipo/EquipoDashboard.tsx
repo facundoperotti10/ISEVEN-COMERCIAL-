@@ -181,7 +181,7 @@ export function EquipoDashboard({ me, staff, initialTasks, events, initialStock,
           me={me}
           stock={stock}
           nameOf={nameOf}
-          onCreated={(r) => setStock((s) => [...s, r])}
+          onCreated={(r) => setStock((s) => [...s, ...r])}
           onDeleted={(id) => setStock((s) => s.filter((x) => x.id !== id))}
           onError={setError}
         />
@@ -234,47 +234,62 @@ function StockTab({
   me: Staff;
   stock: StockRequest[];
   nameOf: (id: string) => string;
-  onCreated: (r: StockRequest) => void;
+  onCreated: (r: StockRequest[]) => void;
   onDeleted: (id: string) => void;
   onError: (m: string) => void;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const tomorrow = dateARPlus(1);
+  const emptyItem = { modelo: '', capacidad: '', color: '', imei: '' };
   const [form, setForm] = useState({
     cliente: '',
     turno_date: tomorrow,
     turno_time: '',
-    modelo: '',
-    capacidad: '',
-    color: '',
     tipo: 'venta' as 'venta' | 'mostrar',
     urgent: false,
   });
+  const [items, setItems] = useState([emptyItem]);
+  const [sentMsg, setSentMsg] = useState<string | null>(null);
+  const setItem = (i: number, patch: Partial<typeof emptyItem>) =>
+    setItems((list) => list.map((it, j) => (j === i ? { ...it, ...patch } : it)));
   const [saving, setSaving] = useState(false);
   const mine = stock.filter((r) => r.staff_id === me.id).sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setSentMsg(null);
+    const group = crypto.randomUUID();
     const { data, error } = await supabase
       .from('stock_requests')
-      .insert({
-        staff_id: me.id,
-        cliente: form.cliente.trim(),
-        turno_date: form.turno_date,
-        turno_time: form.turno_time || null,
-        modelo: form.modelo.trim(),
-        capacidad: form.capacidad.trim() || null,
-        color: form.color.trim() || null,
-        tipo: form.tipo,
-        urgent: form.urgent,
-      })
-      .select()
-      .single();
+      .insert(
+        items.map((it) => ({
+          staff_id: me.id,
+          cliente: form.cliente.trim(),
+          turno_date: form.turno_date,
+          turno_time: form.turno_time || null,
+          modelo: it.modelo.trim(),
+          capacidad: it.capacidad.trim() || null,
+          color: it.color.trim() || null,
+          imei: it.imei || null,
+          tipo: form.tipo,
+          urgent: form.urgent,
+          group_id: group,
+        }))
+      )
+      .select();
     setSaving(false);
-    if (error) return onError(errorMessage(error));
+    if (error || !data) return onError(errorMessage(error));
     onCreated(data);
-    setForm((f) => ({ ...f, cliente: '', turno_time: '', modelo: '', capacidad: '', color: '', urgent: false }));
+    setSentMsg(`Pedido enviado: ${data.length} ${data.length === 1 ? 'equipo' : 'equipos'}. Ya les llegó el aviso a Facu y Mike.`);
+    // Aviso al celular de los dueños (si falla, el pedido igual queda cargado).
+    fetch('/api/push/stock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: data[0].id }),
+    }).catch(() => {});
+    setForm((f) => ({ ...f, cliente: '', turno_time: '', urgent: false }));
+    setItems([emptyItem]);
   }
 
   async function remove(id: string) {
@@ -308,19 +323,55 @@ function StockTab({
             <input id="st-hora" type="time" value={form.turno_time} onChange={(e) => setForm({ ...form, turno_time: e.target.value })} className={input} />
           </label>
         </div>
-        <label className="text-xs text-text-muted">
-          Modelo
-          <input id="st-modelo" required placeholder="iPhone 15 Pro" value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} className={input} />
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="text-xs text-text-muted">
-            Capacidad
-            <input id="st-cap" placeholder="256 GB" value={form.capacidad} onChange={(e) => setForm({ ...form, capacidad: e.target.value })} className={input} />
-          </label>
-          <label className="text-xs text-text-muted">
-            Color
-            <input id="st-color" placeholder="Titanio negro" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={input} />
-          </label>
+        <div className="flex flex-col gap-2">
+          {items.map((it, i) => (
+            <fieldset key={i} className="rounded-[12px] border border-border p-3">
+              <legend className="px-1 text-xs text-text-muted">
+                Teléfono {items.length > 1 ? i + 1 : ''}
+              </legend>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="col-span-2 text-xs text-text-muted">
+                  Modelo
+                  <input id={`st-modelo-${i}`} required placeholder="iPhone 15 Pro" value={it.modelo} onChange={(e) => setItem(i, { modelo: e.target.value })} className={input} />
+                </label>
+                <label className="text-xs text-text-muted">
+                  Capacidad
+                  <input id={`st-cap-${i}`} placeholder="256 GB" value={it.capacidad} onChange={(e) => setItem(i, { capacidad: e.target.value })} className={input} />
+                </label>
+                <label className="text-xs text-text-muted">
+                  Color
+                  <input id={`st-color-${i}`} placeholder="Titanio negro" value={it.color} onChange={(e) => setItem(i, { color: e.target.value })} className={input} />
+                </label>
+                <label className="col-span-2 text-xs text-text-muted">
+                  Últimos 4 del IMEI
+                  <input
+                    id={`st-imei-${i}`}
+                    required
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="[0-9]{4}"
+                    title="Los últimos 4 números del IMEI"
+                    placeholder="Ej: 5678"
+                    value={it.imei}
+                    onChange={(e) => setItem(i, { imei: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                    className={`${input} font-mono tracking-wider`}
+                  />
+                </label>
+              </div>
+              {items.length > 1 && (
+                <button type="button" onClick={() => setItems((l) => l.filter((_, j) => j !== i))} className="mt-2 text-xs text-text-muted hover:text-red">
+                  Quitar este teléfono
+                </button>
+              )}
+            </fieldset>
+          ))}
+          <button
+            type="button"
+            onClick={() => setItems((l) => [...l, emptyItem])}
+            className="rounded-[10px] border border-dashed border-border px-3 py-2 text-sm text-text-secondary hover:text-text"
+          >
+            + Agregar otro teléfono
+          </button>
         </div>
         <div className="flex gap-2">
           {(['venta', 'mostrar'] as const).map((t) => (
@@ -341,8 +392,9 @@ function StockTab({
           Urgente: cliente sin turno y sin stock en la oficina (decide Mike)
         </label>
         <button disabled={saving} className="rounded-[10px] bg-primary-bright px-4 py-2.5 font-medium text-bg disabled:opacity-50">
-          {saving ? 'Enviando…' : 'Enviar pedido'}
+          {saving ? 'Enviando…' : items.length > 1 ? `Enviar pedido (${items.length} teléfonos)` : 'Enviar pedido'}
         </button>
+        {sentMsg && <p className="rounded-[10px] bg-green/15 px-3 py-2 text-sm text-green">{sentMsg}</p>}
       </form>
 
       <section className="card p-4">

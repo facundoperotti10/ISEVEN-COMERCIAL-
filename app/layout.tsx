@@ -17,6 +17,8 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "ISEVEN — Control Comercial",
   description: "Centro de control comercial de ISEVEN",
+  appleWebApp: { capable: true, title: "ISEVEN", statusBarStyle: "black-translucent" },
+  icons: { apple: "/apple-touch-icon.png" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
