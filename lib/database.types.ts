@@ -321,6 +321,36 @@ export interface Database {
           group_id?: string | null;
         }
       >;
+      stock_lots: TableOf<
+        { id: string; received_at: string; note: string | null; created_by: string | null; created_at: string },
+        { received_at?: string; note?: string | null }
+      >;
+      reserved_units: TableOf<
+        {
+          id: string;
+          lot_id: string;
+          modelo: string;
+          capacidad: string | null;
+          color: string | null;
+          imei: string | null;
+          reserved_at: string;
+          release_at: string;
+          status: 'reservado' | 'vendido';
+          sold_by: string | null;
+          sold_at: string | null;
+          release_notified: boolean;
+          created_at: string;
+        },
+        {
+          lot_id: string;
+          modelo: string;
+          capacidad?: string | null;
+          color?: string | null;
+          imei?: string | null;
+          release_at?: string;
+          status?: 'reservado' | 'vendido';
+        }
+      >;
       push_subscriptions: TableOf<
         { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; created_at: string },
         { endpoint: string; p256dh: string; auth: string; user_id?: string }
@@ -343,6 +373,8 @@ export interface Database {
       office_live: { Args: Record<string, never>; Returns: unknown };
       push_targets_for_stock: { Args: { p_id: string }; Returns: unknown };
       push_drop: { Args: { p_endpoint: string }; Returns: undefined };
+      sell_reserved: { Args: { p_id: string }; Returns: unknown };
+      release_due: { Args: { p_secret: string }; Returns: unknown };
       close_period: {
         Args: { new_name: string; new_start: string; new_end: string };
         Returns: undefined;

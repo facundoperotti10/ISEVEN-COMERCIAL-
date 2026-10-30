@@ -5,7 +5,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, StockStatus, TripSlot } from '@/lib/database.types';
 import { StockRequestCard } from '@/components/oficina/StockRequestCard';
 import { PushToggle } from '@/components/oficina/PushToggle';
-import { SLOT_LABEL, errorMessage, fechaLarga, type Staff, type StockRequest } from '@/lib/oficina';
+import { CupoLocal } from '@/components/oficina/CupoLocal';
+import { SLOT_LABEL, errorMessage, fechaLarga, type Staff, type StockRequest, type ReservedUnit, type StockLot } from '@/lib/oficina';
 
 interface Props {
   staff: Staff[];
@@ -13,11 +14,14 @@ interface Props {
   today: string;
   supabase: SupabaseClient<Database>;
   onChange: (r: StockRequest[]) => void;
+  lots: StockLot[];
+  units: ReservedUnit[];
+  onCupoChange: (lots: StockLot[], units: ReservedUnit[]) => void;
 }
 
 const SLOT_ORDER: Record<TripSlot, number> = { urgente: 0, '10:00': 1, '15:00': 2 };
 
-export function StockAdminTab({ staff, requests, today, supabase, onChange }: Props) {
+export function StockAdminTab({ staff, requests, today, supabase, onChange, lots, units, onCupoChange }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [showPast, setShowPast] = useState(false);
   const [q, setQ] = useState('');
@@ -58,6 +62,8 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange }: Pr
   return (
     <div className="flex flex-col gap-4">
       <PushToggle />
+      <CupoLocal mode="admin" staff={staff} lots={lots} units={units} supabase={supabase} onChange={onCupoChange} />
+      <h2 className="mt-2 font-display text-base font-bold">Pedidos de los vendedores</h2>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-text-secondary">
           {pendientes ? `${pendientes} pedidos esperando autorización.` : 'No hay pedidos pendientes.'} Lo de mañana se carga hasta

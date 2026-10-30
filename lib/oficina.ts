@@ -7,6 +7,35 @@ export type Task = Tables['tasks']['Row'];
 export type TaskTemplate = Tables['task_templates']['Row'];
 export type StockRequest = Tables['stock_requests']['Row'];
 export type SaturdayShift = Tables['saturday_shifts']['Row'];
+export type StockLot = Tables['stock_lots']['Row'];
+export type ReservedUnit = Tables['reserved_units']['Row'];
+
+/** Horas que el cupo del local es exclusivo del minorista. */
+export const CUPO_HORAS = 72;
+
+/** "2 d 5 h", "3 h 20 min", "12 min" hasta una fecha. */
+export function faltaTexto(iso: string, now: number = Date.now()): string {
+  const min = Math.max(0, Math.round((new Date(iso).getTime() - now) / 60000));
+  const d = Math.floor(min / 1440);
+  const h = Math.floor((min % 1440) / 60);
+  const m = min % 60;
+  if (d > 0) return `${d} d ${h} h`;
+  if (h > 0) return `${h} h ${m} min`;
+  return `${m} min`;
+}
+
+/** "lun 02/11 13:10" en hora de Córdoba. */
+export function diaHoraAR(iso: string): string {
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: TZ,
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso));
+}
 
 export const STAFF_COLUMNS =
   'id, name, full_name, area, role_label, is_manager, seller_id, start_time, pin_set, active, sort, created_at';

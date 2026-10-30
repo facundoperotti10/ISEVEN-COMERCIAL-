@@ -12,16 +12,35 @@ export default async function EquipoPage() {
 
   await supabase.rpc('ensure_tasks', {});
 
-  const [{ data: staff }, { data: tasks }, { data: events }, { data: stock }, { data: shifts }] = await Promise.all([
-    supabase
-      .from('staff')
-      .select(STAFF_COLUMNS)
-      .eq('active', true)
-      .order('sort'),
+  const [
+    { data: staff },
+    { data: tasks },
+    { data: events },
+    { data: stock },
+    { data: shifts },
+    { data: lots },
+    { data: units },
+  ] = await Promise.all([
+    supabase.from('staff').select(STAFF_COLUMNS).eq('active', true).order('sort'),
     supabase.from('tasks').select('*').eq('date', today).order('created_at'),
     supabase.from('clock_events').select('*').gte('work_date', start).lte('work_date', end).order('at'),
-    supabase.from('stock_requests').select('*').gte('turno_date', dateARPlus(-7)).order('turno_date').order('turno_time'),
+    supabase
+      .from('stock_requests')
+      .select('*')
+      .gte('turno_date', dateARPlus(-7))
+      .order('turno_date')
+      .order('turno_time'),
     supabase.from('saturday_shifts').select('*').gte('date', today).order('date'),
+    supabase
+      .from('stock_lots')
+      .select('*')
+      .gte('received_at', `${dateARPlus(-21)}T00:00:00`)
+      .order('received_at'),
+    supabase
+      .from('reserved_units')
+      .select('*')
+      .gte('created_at', `${dateARPlus(-21)}T00:00:00`)
+      .order('created_at'),
   ]);
 
   const me = (staff ?? []).find((s) => s.id === profile.staffId);
@@ -41,6 +60,8 @@ export default async function EquipoPage() {
       events={events ?? []}
       initialStock={stock ?? []}
       initialShifts={shifts ?? []}
+      initialLots={lots ?? []}
+      initialUnits={units ?? []}
       today={today}
     />
   );

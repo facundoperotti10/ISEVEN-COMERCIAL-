@@ -23,7 +23,16 @@ import { GoalsTab } from '@/components/admin/GoalsTab';
 import { AsistenciaTab } from '@/components/admin/AsistenciaTab';
 import { StockAdminTab } from '@/components/admin/StockAdminTab';
 import { EquipoAdminTab } from '@/components/admin/EquipoAdminTab';
-import type { ClockEvent, SaturdayShift, Staff, StockRequest, Task, TaskTemplate } from '@/lib/oficina';
+import type {
+  ClockEvent,
+  ReservedUnit,
+  SaturdayShift,
+  Staff,
+  StockLot,
+  StockRequest,
+  Task,
+  TaskTemplate,
+} from '@/lib/oficina';
 
 const TABS = [
   { id: 'resumen', label: 'Resumen' },
@@ -55,6 +64,8 @@ interface AdminDashboardProps {
     templates: TaskTemplate[];
     stock: StockRequest[];
     shifts: SaturdayShift[];
+    lots: StockLot[];
+    units: ReservedUnit[];
   };
 }
 
@@ -63,6 +74,8 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
   const [events, setEvents] = useState<ClockEvent[]>(oficina.events);
   const [tasks, setTasks] = useState<Task[]>(oficina.tasks);
   const [stock, setStock] = useState<StockRequest[]>(oficina.stock);
+  const [lots, setLots] = useState<StockLot[]>(oficina.lots);
+  const [units, setUnits] = useState<ReservedUnit[]>(oficina.units);
   const stockPend = stock.filter((r) => r.status === 'pendiente' && r.trip_date >= oficina.today).length;
   const [sellers, setSellers] = useState<Seller[]>(initialSellers);
   const [period, setPeriod] = useState<Period>(initialPeriod);
@@ -153,7 +166,19 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
         />
       )}
       {tab === 'stock' && (
-        <StockAdminTab staff={staff} requests={stock} today={oficina.today} supabase={supabase} onChange={setStock} />
+        <StockAdminTab
+          staff={staff}
+          requests={stock}
+          today={oficina.today}
+          supabase={supabase}
+          onChange={setStock}
+          lots={lots}
+          units={units}
+          onCupoChange={(l, u) => {
+            setLots(l);
+            setUnits(u);
+          }}
+        />
       )}
       {tab === 'equipo' && (
         <EquipoAdminTab

@@ -27,6 +27,8 @@ export default async function AdminPage() {
     { data: templates },
     { data: stock },
     { data: shifts },
+    { data: lots },
+    { data: units },
   ] = await Promise.all([
     supabase.from('sellers').select('*').order('created_at', { ascending: true }),
     supabase.from('period').select('*').eq('id', 1).single(),
@@ -45,6 +47,8 @@ export default async function AdminPage() {
     supabase.from('task_templates').select('*').order('sort'),
     supabase.from('stock_requests').select('*').gte('trip_date', dateARPlus(-14)).order('trip_date'),
     supabase.from('saturday_shifts').select('*').gte('date', today).order('date'),
+    supabase.from('stock_lots').select('*').gte('received_at', `${dateARPlus(-21)}T00:00:00`).order('received_at'),
+    supabase.from('reserved_units').select('*').gte('created_at', `${dateARPlus(-21)}T00:00:00`).order('created_at'),
   ]);
 
   if (!period) {
@@ -69,6 +73,8 @@ export default async function AdminPage() {
         templates: templates ?? [],
         stock: stock ?? [],
         shifts: shifts ?? [],
+        lots: lots ?? [],
+        units: units ?? [],
       }}
     />
   );
