@@ -78,6 +78,32 @@ const TONE_CLASS = {
   none: 'bg-bg text-text-muted',
 } as const;
 
+// Cámara compartida: se pide una sola vez y queda prendida mientras el reloj está abierto.
+// Si se apaga y se vuelve a pedir, el iPhone pregunta el permiso de nuevo cada vez.
+let cameraPromise: Promise<MediaStream> | null = null;
+
+function cameraAlive(s: MediaStream): boolean {
+  return s.getVideoTracks().some((t) => t.readyState === 'live');
+}
+
+function getCamera(): Promise<MediaStream> {
+  if (cameraPromise) {
+    return cameraPromise.then((s) => {
+      if (cameraAlive(s)) return s;
+      cameraPromise = null;
+      return getCamera();
+    });
+  }
+  if (!navigator.mediaDevices?.getUserMedia) return Promise.reject(new Error('Sin cámara'));
+  cameraPromise = navigator.mediaDevices
+    .getUserMedia({ video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }, audio: false })
+    .catch((e) => {
+      cameraPromise = null;
+      throw e;
+    });
+  return cameraPromise;
+}
+
 export function Kiosk() {
   const supabase = useMemo(() => createClient(), []);
   const token = useSyncExternalStore(subscribeNoop, readToken, readTokenServer);
@@ -111,6 +137,11 @@ export function Kiosk() {
       clearInterval(t);
     };
   }, [token, loadBoard]);
+
+  // Prende la cámara apenas abre el reloj (pide permiso una sola vez).
+  useEffect(() => {
+    if (token) getCamera().catch(() => {});
+  }, [token]);
 
   // Mantiene la pantalla prendida mientras está abierta (si el teléfono lo permite).
   useEffect(() => {
@@ -250,7 +281,6 @@ function PinView({
 }) {
   const supabase = useMemo(() => createClient(), []);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const [camOk, setCamOk] = useState<boolean | null>(null);
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -258,24 +288,21 @@ function PinView({
 
   useEffect(() => {
     let cancelled = false;
-    navigator.mediaDevices
-      ?.getUserMedia({ video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }, audio: false })
+    getCamera()
       .then((stream) => {
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
+        if (cancelled) return;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.play().catch(() => {});
         }
         setCamOk(true);
       })
-      .catch(() => setCamOk(false));
+      .catch(() => {
+        if (!cancelled) setCamOk(false);
+      });
+    // La cámara NO se apaga al salir: queda prendida para que el iPhone no vuelva a pedir permiso.
     return () => {
       cancelled = true;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
