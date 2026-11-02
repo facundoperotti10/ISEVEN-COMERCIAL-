@@ -278,7 +278,7 @@ function StockTab({
 }) {
   const supabase = useMemo(() => createClient(), []);
   const tomorrow = dateARPlus(1);
-  const emptyItem = { modelo: '', capacidad: '', color: '', imei: '' };
+  const emptyItem = { categoria: 'telefono' as 'telefono' | 'accesorio', modelo: '', capacidad: '', color: '', imei: '' };
   const [form, setForm] = useState({
     cliente: '',
     turno_date: tomorrow,
@@ -309,7 +309,7 @@ function StockTab({
           modelo: it.modelo.trim(),
           capacidad: it.capacidad.trim() || null,
           color: it.color.trim() || null,
-          imei: it.imei || null,
+          imei: it.categoria === 'telefono' ? it.imei || null : null,
           tipo: form.tipo,
           urgent: form.urgent,
           group_id: group,
@@ -344,6 +344,7 @@ function StockTab({
   function pedir(u: ReservedUnit) {
     setItems([
       {
+        categoria: 'telefono',
         modelo: u.modelo,
         capacidad: u.capacidad ?? '',
         color: u.color ?? '',
@@ -410,58 +411,80 @@ function StockTab({
           <div className="flex flex-col gap-2">
             {items.map((it, i) => (
               <fieldset key={i} className="rounded-[12px] border border-border p-3">
-                <legend className="px-1 text-xs text-text-muted">Teléfono {items.length > 1 ? i + 1 : ''}</legend>
+                <legend className="px-1 text-xs text-text-muted">
+                  {it.categoria === 'telefono' ? 'Teléfono' : 'Accesorio'} {items.length > 1 ? i + 1 : ''}
+                </legend>
+                <div className="mb-2 flex gap-1.5">
+                  {(['telefono', 'accesorio'] as const).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setItem(i, { categoria: cat, ...(cat === 'accesorio' ? { imei: '' } : {}) })}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                        it.categoria === cat
+                          ? 'bg-primary-bright text-bg'
+                          : 'bg-bg-elevated text-text-secondary hover:text-text'
+                      }`}
+                    >
+                      {cat === 'telefono' ? 'Teléfono' : 'Accesorio'}
+                    </button>
+                  ))}
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="col-span-2 text-xs text-text-muted">
-                    Modelo
+                    {it.categoria === 'telefono' ? 'Modelo' : 'Qué es'}
                     <input
                       id={`st-modelo-${i}`}
                       required
-                      placeholder="iPhone 15 Pro"
+                      placeholder={it.categoria === 'telefono' ? 'iPhone 15 Pro' : 'Funda, cargador, vidrio templado…'}
                       value={it.modelo}
                       onChange={(e) => setItem(i, { modelo: e.target.value })}
                       className={input}
                     />
                   </label>
-                  <label className="text-xs text-text-muted">
-                    Capacidad
-                    <input
-                      id={`st-cap-${i}`}
-                      placeholder="256 GB"
-                      value={it.capacidad}
-                      onChange={(e) => setItem(i, { capacidad: e.target.value })}
-                      className={input}
-                    />
-                  </label>
-                  <label className="text-xs text-text-muted">
+                  {it.categoria === 'telefono' && (
+                    <label className="text-xs text-text-muted">
+                      Capacidad
+                      <input
+                        id={`st-cap-${i}`}
+                        placeholder="256 GB"
+                        value={it.capacidad}
+                        onChange={(e) => setItem(i, { capacidad: e.target.value })}
+                        className={input}
+                      />
+                    </label>
+                  )}
+                  <label className={`text-xs text-text-muted ${it.categoria === 'accesorio' ? 'col-span-2' : ''}`}>
                     Color
                     <input
                       id={`st-color-${i}`}
-                      placeholder="Titanio negro"
+                      placeholder={it.categoria === 'telefono' ? 'Titanio negro' : 'Si aplica'}
                       value={it.color}
                       onChange={(e) => setItem(i, { color: e.target.value })}
                       className={input}
                     />
                   </label>
-                  <label className="col-span-2 text-xs text-text-muted">
-                    Últimos 4 del IMEI
-                    <input
-                      id={`st-imei-${i}`}
-                      required
-                      inputMode="numeric"
-                      maxLength={4}
-                      pattern="[0-9]{4}"
-                      title="Los últimos 4 números del IMEI"
-                      placeholder="Ej: 5678"
-                      value={it.imei}
-                      onChange={(e) =>
-                        setItem(i, {
-                          imei: e.target.value.replace(/\D/g, '').slice(0, 4),
-                        })
-                      }
-                      className={`${input} font-mono tracking-wider`}
-                    />
-                  </label>
+                  {it.categoria === 'telefono' && (
+                    <label className="col-span-2 text-xs text-text-muted">
+                      Últimos 4 del IMEI
+                      <input
+                        id={`st-imei-${i}`}
+                        required
+                        inputMode="numeric"
+                        maxLength={4}
+                        pattern="[0-9]{4}"
+                        title="Los últimos 4 números del IMEI"
+                        placeholder="Ej: 5678"
+                        value={it.imei}
+                        onChange={(e) =>
+                          setItem(i, {
+                            imei: e.target.value.replace(/\D/g, '').slice(0, 4),
+                          })
+                        }
+                        className={`${input} font-mono tracking-wider`}
+                      />
+                    </label>
+                  )}
                 </div>
                 {items.length > 1 && (
                   <button
@@ -469,7 +492,7 @@ function StockTab({
                     onClick={() => setItems((l) => l.filter((_, j) => j !== i))}
                     className="mt-2 text-xs text-text-muted hover:text-red"
                   >
-                    Quitar este teléfono
+                    Quitar este ítem
                   </button>
                 )}
               </fieldset>
@@ -479,7 +502,7 @@ function StockTab({
               onClick={() => setItems((l) => [...l, emptyItem])}
               className="rounded-[10px] border border-dashed border-border px-3 py-2 text-sm text-text-secondary hover:text-text"
             >
-              + Agregar otro teléfono
+              + Agregar otro ítem
             </button>
           </div>
           <div className="flex gap-2">
