@@ -31,17 +31,6 @@ import {
 } from '@/lib/calc';
 import type { ContactEstado } from '@/lib/database.types';
 
-/**
- * true si Supabase rechazó el pedido porque la columna `fuente` todavía no
- * existe en la base (la migración no se corrió). Permite reintentar sin ese
- * campo en vez de que se rompa la carga de clientes por completo.
- */
-function isMissingFuenteColumn(error: unknown): boolean {
-  const e = error as { code?: string; message?: string } | null;
-  const message = e?.message ?? '';
-  return e?.code === 'PGRST204' || (/fuente/i.test(message) && /column|schema/i.test(message));
-}
-
 interface VendedorDashboardProps {
   seller: Seller;
   period: Period;
@@ -104,7 +93,7 @@ export function VendedorDashboard({
     };
     setContacts((prev) => [optimistic, ...prev]);
 
-    let { data: inserted, error } = await supabase
+    const { data: inserted, error } = await supabase
       .from('contacts')
       .insert({
         seller_id: seller.id,
@@ -117,21 +106,6 @@ export function VendedorDashboard({
       })
       .select()
       .single();
-
-    if (error && isMissingFuenteColumn(error)) {
-      ({ data: inserted, error } = await supabase
-        .from('contacts')
-        .insert({
-          seller_id: seller.id,
-          date: today,
-          nombre: data.nombre,
-          telefono: data.telefono || null,
-          estado: data.estado,
-          observacion: data.observacion || null,
-        })
-        .select()
-        .single());
-    }
 
     if (error || !inserted) {
       console.error('No se pudo guardar el cliente:', error);
@@ -147,7 +121,8 @@ export function VendedorDashboard({
   }
 
   async function handleUpdate(id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion' | 'fuente'>>) {
-    setContacts((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    const prev = contacts;
+    setContacts((cs) => cs.map((c) => (c.id === id ? { ...c, ...patch } : c)));
     if (patch.estado === 'vendido') {
       const contact = contacts.find((c) => c.id === id);
       if (contact) setCelebration({ id: Date.now(), nombre: contact.nombre });
@@ -155,18 +130,9 @@ export function VendedorDashboard({
 
     const { error } = await supabase.from('contacts').update(patch).eq('id', id);
 
-    if (error && isMissingFuenteColumn(error) && 'fuente' in patch) {
-      const fallbackPatch: Partial<Pick<Contact, 'estado' | 'observacion'>> = {};
-      if (patch.estado !== undefined) fallbackPatch.estado = patch.estado;
-      if (patch.observacion !== undefined) fallbackPatch.observacion = patch.observacion;
-      if (Object.keys(fallbackPatch).length > 0) {
-        const { error: fallbackError } = await supabase.from('contacts').update(fallbackPatch).eq('id', id);
-        if (fallbackError) {
-          console.error('No se pudo actualizar el cliente:', fallbackError);
-        }
-      }
-    } else if (error) {
+    if (error) {
       console.error('No se pudo actualizar el cliente:', error);
+      setContacts(prev);
     }
   }
 
