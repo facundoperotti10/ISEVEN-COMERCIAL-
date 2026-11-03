@@ -31,6 +31,13 @@ import {
 } from '@/lib/calc';
 import type { ContactEstado } from '@/lib/database.types';
 
+/** Texto corto con el código y mensaje de Supabase, para que el vendedor lo mande por soporte. */
+function describeSupabaseError(error: unknown): string {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e) return 'sin respuesta del servidor (puede ser falta de conexión)';
+  return [e.code, e.message].filter(Boolean).join(' - ') || 'error desconocido';
+}
+
 interface VendedorDashboardProps {
   seller: Seller;
   period: Period;
@@ -77,7 +84,7 @@ export function VendedorDashboard({
     estado: ContactEstado;
     observacion: string;
     fuente: string;
-  }): Promise<boolean> {
+  }): Promise<string | null> {
     const optimisticId = `optimistic-${Date.now()}`;
     const optimistic: Contact = {
       id: optimisticId,
@@ -110,14 +117,14 @@ export function VendedorDashboard({
     if (error || !inserted) {
       console.error('No se pudo guardar el cliente:', error);
       setContacts((prev) => prev.filter((c) => c.id !== optimisticId));
-      return false;
+      return describeSupabaseError(error);
     }
 
     setContacts((prev) => prev.map((c) => (c.id === optimisticId ? inserted : c)));
     if (inserted.estado === 'vendido') {
       setCelebration({ id: Date.now(), nombre: inserted.nombre });
     }
-    return true;
+    return null;
   }
 
   async function handleUpdate(id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion' | 'fuente'>>) {
