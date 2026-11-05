@@ -398,10 +398,11 @@ function StockTab({
               />
             </label>
             <label className="text-xs text-text-muted">
-              Hora
+              Hora del turno
               <input
                 id="st-hora"
                 type="time"
+                required
                 value={form.turno_time}
                 onChange={(e) => setForm({ ...form, turno_time: e.target.value })}
                 className={input}
