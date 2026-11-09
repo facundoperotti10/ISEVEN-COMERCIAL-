@@ -27,6 +27,7 @@ export interface Database {
           initial_sales: number;
           bonus_usd: number;
           active: boolean;
+          area: 'minorista' | 'mayorista' | 'tecnico' | 'marketing';
           created_at: string;
         };
         Insert: {
@@ -36,6 +37,7 @@ export interface Database {
           initial_sales?: number;
           bonus_usd?: number;
           active?: boolean;
+          area?: 'minorista' | 'mayorista' | 'tecnico' | 'marketing';
           created_at?: string;
         };
         Update: {

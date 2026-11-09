@@ -1,5 +1,7 @@
 import type { ContactEstado } from '@/lib/database.types';
 
+export type SellerArea = 'minorista' | 'mayorista' | 'tecnico' | 'marketing';
+
 export type Seller = {
   id: string;
   name: string;
@@ -7,7 +9,14 @@ export type Seller = {
   initial_sales: number;
   bonus_usd: number;
   active: boolean;
+  /** Área del panel. Puede faltar si la migración de áreas todavía no corrió. */
+  area?: SellerArea;
 };
+
+/** Área del vendedor; sin dato, cuenta como minorista. */
+export function sellerArea(s: Pick<Seller, 'area'>): SellerArea {
+  return s.area ?? 'minorista';
+}
 
 export type Contact = {
   id: string;

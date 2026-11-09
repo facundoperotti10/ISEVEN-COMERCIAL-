@@ -7,6 +7,7 @@ import { OficinaEnVivo } from '@/components/oficina/OficinaEnVivo';
 import {
   buildSellerMetrics,
   buildTeamAverages,
+  sellerArea,
   type ClientSale,
   type Contact,
   type Period,
@@ -52,7 +53,23 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
-const OFICINA_TABS: readonly TabId[] = ['asistencia', 'stock', 'equipo'];
+
+/** Apartados del panel. Los de ventas muestran solo a los vendedores de esa área. */
+const SECCIONES = [
+  {
+    id: 'minorista',
+    label: 'Minorista',
+    tabs: ['resumen', 'vendedores', 'clientes', 'embudo', 'ranking', 'semana', 'historico', 'objetivos'],
+  },
+  {
+    id: 'mayorista',
+    label: 'Mayorista',
+    tabs: ['resumen', 'clientes', 'top-clientes', 'embudo', 'semana', 'historico', 'objetivos'],
+  },
+  { id: 'oficina', label: 'Oficina', tabs: ['asistencia', 'stock', 'equipo'] },
+] as const satisfies readonly { id: string; label: string; tabs: readonly TabId[] }[];
+
+type SeccionId = (typeof SECCIONES)[number]['id'];
 
 interface AdminDashboardProps {
   initialSellers: Seller[];
@@ -90,12 +107,29 @@ export function AdminDashboard({
   const stockPend = stock.filter((r) => r.status === 'pendiente' && r.trip_date >= oficina.today).length;
   const [sellers, setSellers] = useState<Seller[]>(initialSellers);
   const [period, setPeriod] = useState<Period>(initialPeriod);
-  const contacts = initialContacts;
-  const clientSales = initialClientSales;
+  const [seccion, setSeccion] = useState<SeccionId>('minorista');
   const [tab, setTab] = useState<TabId>('resumen');
   const supabase = useMemo(() => createClient(), []);
+  const seccionActual = SECCIONES.find((s) => s.id === seccion)!;
+  const tabsSeccion = TABS.filter((t) => (seccionActual.tabs as readonly TabId[]).includes(t.id));
 
-  const activeSellers = useMemo(() => sellers.filter((s) => s.active), [sellers]);
+  function cambiarSeccion(id: SeccionId) {
+    setSeccion(id);
+    const tabs = SECCIONES.find((s) => s.id === id)!.tabs as readonly TabId[];
+    if (!tabs.includes(tab)) setTab(tabs[0]);
+  }
+
+  // Datos de ventas del área elegida (en Oficina no se usan).
+  const areaSellers = useMemo(() => sellers.filter((s) => sellerArea(s) === seccion), [sellers, seccion]);
+  const areaIds = useMemo(() => new Set(areaSellers.map((s) => s.id)), [areaSellers]);
+  const contacts = useMemo(() => initialContacts.filter((c) => areaIds.has(c.seller_id)), [initialContacts, areaIds]);
+  const clientSales = useMemo(
+    () => initialClientSales.filter((s) => areaIds.has(s.seller_id)),
+    [initialClientSales, areaIds]
+  );
+  const history = useMemo(() => initialHistory.filter((h) => areaIds.has(h.seller_id)), [initialHistory, areaIds]);
+
+  const activeSellers = useMemo(() => areaSellers.filter((s) => s.active), [areaSellers]);
 
   const metrics = useMemo(
     () => activeSellers.map((s) => buildSellerMetrics(s, contacts, period, new Date(), clientSales)),
@@ -116,34 +150,46 @@ export function AdminDashboard({
 
       <OficinaEnVivo />
 
-      <nav className="mb-6 flex flex-col gap-2 border-b border-border pb-3">
-        {(
-          [
-            ['Ventas', TABS.filter((t) => !OFICINA_TABS.includes(t.id))],
-            ['Oficina', TABS.filter((t) => OFICINA_TABS.includes(t.id))],
-          ] as const
-        ).map(([group, list]) => (
-          <div key={group} className="flex flex-wrap items-center gap-2">
-            <span className="w-16 text-[11px] uppercase tracking-wide text-text-muted">{group}</span>
-            {list.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
-                  tab === t.id
-                    ? 'bg-primary-bright text-bg'
-                    : 'text-text-secondary hover:bg-bg-elevated hover:text-text'
-                }`}
-              >
-                {t.label}
-                {t.id === 'stock' && stockPend > 0 && (
-                  <span className="ml-1.5 rounded-full bg-orange px-1.5 text-[10px] font-bold text-bg">{stockPend}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        ))}
+      <nav className="mb-6 flex flex-col gap-3 border-b border-border pb-3">
+        <div className="flex flex-wrap gap-2">
+          {SECCIONES.map((sec) => (
+            <button
+              key={sec.id}
+              onClick={() => cambiarSeccion(sec.id)}
+              className={`rounded-[10px] border px-4 py-2 font-display text-sm font-bold transition ${
+                seccion === sec.id
+                  ? 'border-primary-bright bg-primary-bright text-bg'
+                  : 'border-border bg-bg-elevated text-text-secondary hover:text-text'
+              }`}
+            >
+              {sec.label}
+              {sec.id === 'oficina' && stockPend > 0 && (
+                <span className="ml-1.5 rounded-full bg-orange px-1.5 text-[10px] font-bold text-bg">{stockPend}</span>
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {tabsSeccion.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                tab === t.id
+                  ? 'bg-primary-bright/20 text-text'
+                  : 'text-text-secondary hover:bg-bg-elevated hover:text-text'
+              }`}
+            >
+              {t.label}
+              {t.id === 'stock' && stockPend > 0 && (
+                <span className="ml-1.5 rounded-full bg-orange px-1.5 text-[10px] font-bold text-bg">{stockPend}</span>
+              )}
+            </button>
+          ))}
+        </div>
       </nav>
+
+      <div key={seccion}>
 
       {tab === 'resumen' && (
         <SummaryTab
@@ -157,13 +203,13 @@ export function AdminDashboard({
       )}
       {tab === 'vendedores' && <SellersTab metrics={metrics} teamAverages={teamAverages} />}
       {tab === 'clientes' && (
-        <ContactsTab contacts={contacts} sellers={sellers} />
+        <ContactsTab contacts={contacts} sellers={areaSellers} />
       )}
       {tab === 'top-clientes' && (
         <TopClientsTab
           contacts={contacts}
           clientSales={clientSales}
-          sellers={sellers}
+          sellers={areaSellers}
           period={period}
           today={oficina.today}
         />
@@ -177,15 +223,17 @@ export function AdminDashboard({
           contacts={contacts}
           clientSales={clientSales}
           period={period}
-          history={initialHistory}
+          history={history}
         />
       )}
       {tab === 'objetivos' && (
         <GoalsTab
-          sellers={sellers}
+          sellers={areaSellers}
           period={period}
-          history={initialHistory}
-          onSellersChange={setSellers}
+          history={history}
+          onSellersChange={(updated) =>
+            setSellers((prev) => prev.map((s) => updated.find((u) => u.id === s.id) ?? s))
+          }
           onPeriodChange={setPeriod}
           supabase={supabase}
         />
@@ -225,6 +273,7 @@ export function AdminDashboard({
           onTasksChange={setTasks}
         />
       )}
+      </div>
     </main>
   );
 }
