@@ -8,6 +8,7 @@ import {
   buildSellerMetrics,
   buildTeamAverages,
   sellerArea,
+  type AccessorySale,
   type ClientSale,
   type Contact,
   type Period,
@@ -82,6 +83,7 @@ interface AdminDashboardProps {
   initialClientSales: ClientSale[];
   initialHistory: PeriodHistoryRow[];
   initialRepairs: Repair[];
+  initialAccessorySales: AccessorySale[];
   oficina: {
     today: string;
     staff: Staff[];
@@ -102,6 +104,7 @@ export function AdminDashboard({
   initialClientSales,
   initialHistory,
   initialRepairs,
+  initialAccessorySales,
   oficina,
 }: AdminDashboardProps) {
   const [repairs, setRepairs] = useState<Repair[]>(initialRepairs);
@@ -133,6 +136,10 @@ export function AdminDashboard({
   const clientSales = useMemo(
     () => initialClientSales.filter((s) => areaIds.has(s.seller_id)),
     [initialClientSales, areaIds]
+  );
+  const accessorySales = useMemo(
+    () => initialAccessorySales.filter((a) => areaIds.has(a.seller_id)),
+    [initialAccessorySales, areaIds]
   );
   const history = useMemo(() => initialHistory.filter((h) => areaIds.has(h.seller_id)), [initialHistory, areaIds]);
 
@@ -216,6 +223,7 @@ export function AdminDashboard({
         <TopClientsTab
           contacts={contacts}
           clientSales={clientSales}
+          accessorySales={accessorySales}
           sellers={areaSellers}
           period={period}
           today={oficina.today}

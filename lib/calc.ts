@@ -41,6 +41,18 @@ export type ClientSale = {
   created_at: string;
 };
 
+/** Venta de accesorios a un cliente (mayorista). Se registra aparte: NO suma al
+ *  objetivo de equipos ni al ranking. */
+export type AccessorySale = {
+  id: string;
+  contact_id: string;
+  seller_id: string;
+  date: string; // yyyy-mm-dd
+  descripcion: string;
+  cantidad: number;
+  created_at: string;
+};
+
 export type Period = {
   name: string;
   start_date: string;
@@ -677,10 +689,12 @@ export interface TopClient {
   nombre: string;
   telefono: string | null;
   sellerIds: string[];
-  /** Compras dentro del rango elegido (primera venta + ventas repetidas). */
+  /** Compras de equipos dentro del rango elegido (primera venta + ventas repetidas). */
   compras: number;
-  /** Compras de toda la historia. */
+  /** Compras de equipos de toda la historia. */
   comprasTotal: number;
+  /** Unidades de accesorios dentro del rango (no cuentan como compras de equipos). */
+  accesorios: number;
   primeraCompra: string;
   ultimaCompra: string;
 }
@@ -703,18 +717,20 @@ export function clientKey(c: Pick<Contact, 'telefono' | 'nombre' | 'seller_id'>)
 }
 
 /** Ranking de clientes por cantidad de compras. Cada contacto "vendido" cuenta como
- *  una compra (en su fecha) y cada venta repetida suma otra. `range` filtra por fecha. */
+ *  una compra (en su fecha) y cada venta repetida suma otra. Los accesorios se cuentan
+ *  aparte (unidades). `range` filtra por fecha. */
 export function topClients(
   contacts: Contact[],
   clientSales: ClientSale[],
-  range?: { start: string; end: string }
+  range?: { start: string; end: string },
+  accessorySales: AccessorySale[] = []
 ): TopClient[] {
   const byId = new Map(contacts.map((c) => [c.id, c]));
   const map = new Map<string, TopClient>();
   const latest = new Map<string, string>();
   const inRango = (d: string) => !range || (d >= range.start && d <= range.end);
 
-  const add = (c: Contact, date: string, sellerId: string) => {
+  const rowFor = (c: Contact, date: string, sellerId: string) => {
     const key = clientKey(c);
     let row = map.get(key);
     if (!row) {
@@ -725,6 +741,7 @@ export function topClients(
         sellerIds: [],
         compras: 0,
         comprasTotal: 0,
+        accesorios: 0,
         primeraCompra: date,
         ultimaCompra: date,
       };
@@ -736,21 +753,50 @@ export function topClients(
       row.telefono = c.telefono || row.telefono;
     }
     if (!row.sellerIds.includes(sellerId)) row.sellerIds.push(sellerId);
-    row.comprasTotal += 1;
-    if (inRango(date)) row.compras += 1;
     if (date < row.primeraCompra) row.primeraCompra = date;
     if (date > row.ultimaCompra) row.ultimaCompra = date;
+    return row;
   };
 
-  for (const c of contacts) if (c.estado === 'vendido') add(c, c.date, c.seller_id);
+  const addCompra = (c: Contact, date: string, sellerId: string) => {
+    const row = rowFor(c, date, sellerId);
+    row.comprasTotal += 1;
+    if (inRango(date)) row.compras += 1;
+  };
+
+  for (const c of contacts) if (c.estado === 'vendido') addCompra(c, c.date, c.seller_id);
   for (const s of clientSales) {
     const c = byId.get(s.contact_id);
-    if (c) add(c, s.date, s.seller_id);
+    if (c) addCompra(c, s.date, s.seller_id);
+  }
+  for (const a of accessorySales) {
+    const c = byId.get(a.contact_id);
+    if (!c) continue;
+    const row = rowFor(c, a.date, a.seller_id);
+    if (inRango(a.date)) row.accesorios += a.cantidad;
   }
 
   return [...map.values()]
-    .filter((r) => r.compras > 0)
-    .sort((a, b) => b.compras - a.compras || b.comprasTotal - a.comprasTotal || b.ultimaCompra.localeCompare(a.ultimaCompra));
+    .filter((r) => r.compras > 0 || r.accesorios > 0)
+    .sort(
+      (a, b) =>
+        b.compras - a.compras ||
+        b.accesorios - a.accesorios ||
+        b.comprasTotal - a.comprasTotal ||
+        b.ultimaCompra.localeCompare(a.ultimaCompra)
+    );
+}
+
+/** Accesorios más vendidos (por unidades), agrupando descripciones iguales. */
+export function accesoriosMasVendidos(sales: AccessorySale[]): { descripcion: string; cantidad: number }[] {
+  const map = new Map<string, { descripcion: string; cantidad: number }>();
+  for (const s of sales) {
+    const key = normalizarNombre(s.descripcion);
+    const row = map.get(key) ?? { descripcion: s.descripcion.trim(), cantidad: 0 };
+    row.cantidad += s.cantidad;
+    map.set(key, row);
+  }
+  return [...map.values()].sort((a, b) => b.cantidad - a.cantidad);
 }
 
 // ---------------------------------------------------------------------------

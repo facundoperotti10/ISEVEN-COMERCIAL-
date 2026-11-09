@@ -31,6 +31,7 @@ export default async function AdminPage() {
     { data: lots },
     { data: units },
     repairs,
+    { data: accessorySales },
   ] = await Promise.all([
     supabase.from('sellers').select('*').order('created_at', { ascending: true }),
     supabase.from('period').select('*').eq('id', 1).single(),
@@ -60,6 +61,7 @@ export default async function AdminPage() {
         .order('created_at', { ascending: false })
         .range(from, to)
     ),
+    supabase.from('accessory_sales').select('*').order('date', { ascending: false }),
   ]);
 
   if (!period) {
@@ -78,6 +80,7 @@ export default async function AdminPage() {
       initialClientSales={clientSales ?? []}
       initialHistory={history ?? []}
       initialRepairs={repairs}
+      initialAccessorySales={accessorySales ?? []}
       oficina={{
         today,
         staff: staff ?? [],

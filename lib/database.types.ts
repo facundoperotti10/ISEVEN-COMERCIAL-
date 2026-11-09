@@ -285,6 +285,18 @@ export interface Database {
         { id: string; contact_id: string; seller_id: string; date: string; created_at: string },
         { contact_id: string; seller_id: string; date?: string }
       >;
+      accessory_sales: TableOf<
+        {
+          id: string;
+          contact_id: string;
+          seller_id: string;
+          date: string;
+          descripcion: string;
+          cantidad: number;
+          created_at: string;
+        },
+        { contact_id: string; seller_id: string; date?: string; descripcion: string; cantidad?: number }
+      >;
       repairs: TableOf<
         {
           id: string;

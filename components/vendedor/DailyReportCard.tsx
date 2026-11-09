@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { ClientSale, Contact, Period, Seller, SellerMetrics } from '@/lib/calc';
+import type { AccessorySale, ClientSale, Contact, Period, Seller, SellerMetrics } from '@/lib/calc';
 import { buildDailyReportData, buildDailyReportText } from '@/lib/report';
 
 interface DailyReportCardProps {
@@ -11,6 +11,7 @@ interface DailyReportCardProps {
   metrics: SellerMetrics;
   contacts: Contact[];
   clientSales?: ClientSale[];
+  accessorySales?: AccessorySale[];
   today: string;
 }
 
@@ -32,14 +33,14 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-export function DailyReportCard({ seller, sellerName, period, metrics, contacts, clientSales = [], today }: DailyReportCardProps) {
+export function DailyReportCard({ seller, sellerName, period, metrics, contacts, clientSales = [], accessorySales = [], today }: DailyReportCardProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const text = useMemo(() => {
-    const data = buildDailyReportData(seller.id, contacts, today, clientSales);
+    const data = buildDailyReportData(seller.id, contacts, today, clientSales, accessorySales);
     return buildDailyReportText(sellerName, seller, period, metrics, data);
-  }, [seller, sellerName, period, metrics, contacts, clientSales, today]);
+  }, [seller, sellerName, period, metrics, contacts, clientSales, accessorySales, today]);
 
   async function handleCopy() {
     const ok = await copyText(text);

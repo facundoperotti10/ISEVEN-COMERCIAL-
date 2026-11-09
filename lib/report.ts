@@ -7,6 +7,7 @@ import {
   seguimientosCount,
   SEMAFORO_LABEL,
   todayAR,
+  type AccessorySale,
   type ClientSale,
   type Contact,
   type Period,
@@ -43,13 +44,16 @@ export interface DailyReportData {
   actualizadosDeAntes: number;
   /** Ventas repetidas (clientes ya existentes) fechadas hoy — nombre del cliente de cada una. */
   ventasRepetidas: string[];
+  /** Accesorios vendidos hoy (aparte del objetivo de equipos). */
+  accesorios: { cliente: string; descripcion: string; cantidad: number }[];
 }
 
 export function buildDailyReportData(
   sellerId: string,
   contacts: Contact[],
   date: string = todayAR(),
-  clientSales: ClientSale[] = []
+  clientSales: ClientSale[] = [],
+  accessorySales: AccessorySale[] = []
 ): DailyReportData {
   const mine = contacts.filter((c) => c.seller_id === sellerId);
   const delDia = mine.filter((c) => c.date === date);
@@ -58,6 +62,9 @@ export function buildDailyReportData(
   const ventasRepetidas = clientSales
     .filter((s) => s.seller_id === sellerId && s.date === date)
     .map((s) => nombreByContactId.get(s.contact_id) ?? 'Cliente');
+  const accesorios = accessorySales
+    .filter((a) => a.seller_id === sellerId && a.date === date)
+    .map((a) => ({ cliente: nombreByContactId.get(a.contact_id) ?? 'Cliente', descripcion: a.descripcion, cantidad: a.cantidad }));
 
   return {
     date,
@@ -72,6 +79,7 @@ export function buildDailyReportData(
     cerradosDeAntes: deAntesTocadosHoy.filter((c) => c.estado === 'vendido'),
     actualizadosDeAntes: deAntesTocadosHoy.length,
     ventasRepetidas,
+    accesorios,
   };
 }
 
@@ -107,6 +115,13 @@ export function buildDailyReportText(
     d.vendidos.forEach((c) => lines.push(`• ${c.nombre}`));
     d.cerradosDeAntes.forEach((c) => lines.push(`• ${c.nombre} (consulta del ${c.date.slice(8, 10)}/${c.date.slice(5, 7)})`));
     d.ventasRepetidas.forEach((nombre) => lines.push(`• ${nombre} (venta repetida)`));
+  }
+
+  if (d.accesorios.length > 0) {
+    const unidades = d.accesorios.reduce((acc, a) => acc + a.cantidad, 0);
+    lines.push('');
+    lines.push(`🎧 *Accesorios del día: ${unidades}*`);
+    d.accesorios.forEach((a) => lines.push(`• ${a.cliente}: ${a.descripcion} × ${a.cantidad}`));
   }
 
   if (d.actualizadosDeAntes > 0) {

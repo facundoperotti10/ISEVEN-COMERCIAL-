@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ESTADOS, ESTADO_LABEL, fuenteOptions, type ClientSale, type Contact } from '@/lib/calc';
+import { ESTADOS, ESTADO_LABEL, fuenteOptions, type AccessorySale, type ClientSale, type Contact } from '@/lib/calc';
+import { AccessoryBox } from '@/components/vendedor/AccessoryBox';
 import type { ContactEstado } from '@/lib/database.types';
 import { fechaLarga } from '@/lib/oficina';
 
@@ -29,6 +30,10 @@ interface Props {
   onDelete: (id: string) => void;
   onAddSale?: (contactId: string) => void;
   onDeleteSale?: (id: string) => void;
+  /** Solo mayorista: ventas de accesorios (aparte del objetivo de equipos). */
+  accessorySales?: AccessorySale[];
+  onAddAccessory?: (contactId: string, descripcion: string, cantidad: number) => Promise<string | null>;
+  onDeleteAccessory?: (id: string) => void;
 }
 
 /**
@@ -43,7 +48,18 @@ export function ClientsFolder({
   onDelete,
   onAddSale,
   onDeleteSale,
+  accessorySales = [],
+  onAddAccessory,
+  onDeleteAccessory,
 }: Props) {
+  const sugerenciasAccesorios = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const a of accessorySales) {
+      const t = a.descripcion.trim();
+      if (t && !m.has(t.toLowerCase())) m.set(t.toLowerCase(), t);
+    }
+    return [...m.values()].sort((a, b) => a.localeCompare(b, 'es'));
+  }, [accessorySales]);
   const [q, setQ] = useState('');
   const [estado, setEstado] = useState<'todos' | ContactEstado>('todos');
   const [cuando, setCuando] = useState<'todo' | 'hoy' | 'fecha'>('todo');
@@ -236,6 +252,18 @@ export function ClientsFolder({
                           );
                         })()}
                       </div>
+                    )}
+                    {onAddAccessory && (
+                      <AccessoryBox
+                        contactId={c.id}
+                        sales={accessorySales
+                          .filter((a) => a.contact_id === c.id)
+                          .sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at))}
+                        today={today}
+                        sugerencias={sugerenciasAccesorios}
+                        onAdd={onAddAccessory}
+                        onDelete={onDeleteAccessory}
+                      />
                     )}
                     <div className="flex justify-end gap-2 sm:col-span-2">
                       {confirmDelete === c.id ? (

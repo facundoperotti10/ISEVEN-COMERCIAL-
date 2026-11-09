@@ -23,6 +23,8 @@ import {
   buildTeamRanking,
   salesByDay,
   seguimientosPendientes,
+  sellerArea,
+  type AccessorySale,
   type ClientSale,
   type Contact,
   type Period,
@@ -44,6 +46,7 @@ interface VendedorDashboardProps {
   period: Period;
   initialContacts: Contact[];
   initialClientSales: ClientSale[];
+  initialAccessorySales?: AccessorySale[];
   initialRanking: TeamRankingRaw[];
   sellerName: string;
 }
@@ -53,11 +56,14 @@ export function VendedorDashboard({
   period,
   initialContacts,
   initialClientSales,
+  initialAccessorySales = [],
   initialRanking,
   sellerName,
 }: VendedorDashboardProps) {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [clientSales, setClientSales] = useState<ClientSale[]>(initialClientSales);
+  const [accessorySales, setAccessorySales] = useState<AccessorySale[]>(initialAccessorySales);
+  const esMayorista = sellerArea(seller) === 'mayorista';
   const [tab, setTab] = useState<'hoy' | 'clientes' | 'progreso'>('hoy');
   const [celebration, setCelebration] = useState<CelebrationTrigger | null>(null);
   const dismissCelebration = useCallback(() => setCelebration(null), []);
@@ -185,6 +191,35 @@ export function VendedorDashboard({
     setClientSales((prev) => prev.map((s) => (s.id === optimisticId ? inserted : s)));
   }
 
+  async function handleAddAccessory(contactId: string, descripcion: string, cantidad: number): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('accessory_sales')
+      .insert({ contact_id: contactId, seller_id: seller.id, date: today, descripcion, cantidad })
+      .select()
+      .single();
+    if (error || !data) {
+      console.error('No se pudo cargar el accesorio:', error);
+      return `No se pudo guardar. Para soporte, mandá esto: ${describeSupabaseError(error)}`;
+    }
+    setAccessorySales((prev) => [data, ...prev]);
+    return null;
+  }
+
+  async function handleDeleteAccessory(id: string) {
+    const prev = accessorySales;
+    setAccessorySales((s) => s.filter((x) => x.id !== id));
+    const { error } = await supabase.from('accessory_sales').delete().eq('id', id);
+    if (error) setAccessorySales(prev);
+  }
+
+  const accesoriosMes = useMemo(
+    () =>
+      accessorySales
+        .filter((a) => a.date >= period.start_date && a.date <= period.end_date)
+        .reduce((acc, a) => acc + a.cantidad, 0),
+    [accessorySales, period.start_date, period.end_date]
+  );
+
   async function handleDeleteSale(id: string) {
     const prev = clientSales;
     setClientSales((s) => s.filter((x) => x.id !== id));
@@ -250,6 +285,21 @@ export function VendedorDashboard({
             <KpiCard label="Proyección al cierre" value={Math.round(metrics.proyeccionCierre)} />
           </div>
 
+          {esMayorista && (
+            <button
+              onClick={() => setTab('clientes')}
+              className="card flex items-center justify-between px-4 py-3 text-left"
+            >
+              <span>
+                <span className="block text-xs text-text-secondary">Accesorios vendidos este mes</span>
+                <span className="block text-[11px] text-text-muted">
+                  Aparte del objetivo de equipos · se cargan desde cada cliente
+                </span>
+              </span>
+              <span className="stat-number text-2xl text-lilac">{accesoriosMes}</span>
+            </button>
+          )}
+
           <div className="card p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-display text-sm font-bold text-text">Cargar cliente de hoy</h2>
@@ -273,6 +323,9 @@ export function VendedorDashboard({
             onDelete={handleDelete}
             onAddSale={handleAddSale}
             onDeleteSale={handleDeleteSale}
+            {...(esMayorista
+              ? { accessorySales, onAddAccessory: handleAddAccessory, onDeleteAccessory: handleDeleteAccessory }
+              : {})}
           />
         </div>
       )}
@@ -311,6 +364,7 @@ export function VendedorDashboard({
             metrics={metrics}
             contacts={contacts}
             clientSales={clientSales}
+            accessorySales={accessorySales}
             today={today}
           />
         </div>
