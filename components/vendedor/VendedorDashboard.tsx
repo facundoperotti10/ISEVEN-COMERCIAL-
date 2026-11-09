@@ -293,7 +293,7 @@ export function VendedorDashboard({
               <span>
                 <span className="block text-xs text-text-secondary">Accesorios vendidos este mes</span>
                 <span className="block text-[11px] text-text-muted">
-                  Aparte del objetivo de equipos · se cargan desde cada cliente
+                  No suman al objetivo de celulares · se cargan con &quot;Registrar otra venta&quot;
                 </span>
               </span>
               <span className="stat-number text-2xl text-lilac">{accesoriosMes}</span>

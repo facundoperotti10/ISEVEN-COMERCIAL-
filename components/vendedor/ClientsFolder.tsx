@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { ESTADOS, ESTADO_LABEL, fuenteOptions, type AccessorySale, type ClientSale, type Contact } from '@/lib/calc';
-import { AccessoryBox } from '@/components/vendedor/AccessoryBox';
+import { VentaBox } from '@/components/vendedor/VentaBox';
 import type { ContactEstado } from '@/lib/database.types';
 import { fechaLarga } from '@/lib/oficina';
 
@@ -217,52 +217,16 @@ export function ClientsFolder({
                       />
                     </label>
                     {c.estado === 'vendido' && onAddSale && (
-                      <div className="rounded-[10px] border border-border bg-bg p-2.5 sm:col-span-2">
-                        {(() => {
-                          const ventasRepetidas = clientSales
-                            .filter((s) => s.contact_id === c.id)
-                            .sort((a, b) => b.date.localeCompare(a.date));
-                          const total = 1 + ventasRepetidas.length;
-                          return (
-                            <>
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className="text-xs font-semibold text-text">Ventas: {total}</span>
-                                <button
-                                  onClick={() => onAddSale(c.id)}
-                                  className="rounded-full bg-green/15 px-3 py-1 text-xs font-semibold text-green"
-                                >
-                                  + Registrar otra venta
-                                </button>
-                              </div>
-                              {ventasRepetidas.length > 0 && (
-                                <ul className="mt-2 flex flex-col gap-1">
-                                  {ventasRepetidas.map((s) => (
-                                    <li key={s.id} className="flex items-center justify-between text-[11px] text-text-muted">
-                                      <span>{s.date === today ? 'Hoy' : fechaLarga(s.date)}</span>
-                                      {onDeleteSale && (
-                                        <button onClick={() => onDeleteSale(s.id)} className="text-text-muted hover:text-red">
-                                          Borrar
-                                        </button>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
-                    {onAddAccessory && (
-                      <AccessoryBox
+                      <VentaBox
                         contactId={c.id}
-                        sales={accessorySales
-                          .filter((a) => a.contact_id === c.id)
-                          .sort((a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at))}
                         today={today}
+                        ventasEquipo={clientSales.filter((s) => s.contact_id === c.id)}
+                        onAddSale={onAddSale}
+                        onDeleteSale={onDeleteSale}
+                        accesorios={accessorySales.filter((a) => a.contact_id === c.id)}
                         sugerencias={sugerenciasAccesorios}
-                        onAdd={onAddAccessory}
-                        onDelete={onDeleteAccessory}
+                        onAddAccessory={onAddAccessory}
+                        onDeleteAccessory={onDeleteAccessory}
                       />
                     )}
                     <div className="flex justify-end gap-2 sm:col-span-2">
