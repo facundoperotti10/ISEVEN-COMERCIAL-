@@ -12,12 +12,14 @@ import {
   type Contact,
   type Period,
   type PeriodHistoryRow,
+  type Repair,
   type Seller,
 } from '@/lib/calc';
 import { SummaryTab } from '@/components/admin/SummaryTab';
 import { SellersTab } from '@/components/admin/SellersTab';
 import { ContactsTab } from '@/components/admin/ContactsTab';
 import { TopClientsTab } from '@/components/admin/TopClientsTab';
+import { ServicioTecnicoTab } from '@/components/admin/ServicioTecnicoTab';
 import { FunnelTab } from '@/components/admin/FunnelTab';
 import { RankingTab } from '@/components/admin/RankingTab';
 import { WeekTab } from '@/components/admin/WeekTab';
@@ -47,6 +49,7 @@ const TABS = [
   { id: 'semana', label: 'Semana' },
   { id: 'historico', label: 'Histórico' },
   { id: 'objetivos', label: 'Objetivos' },
+  { id: 'arreglos', label: 'Arreglos' },
   { id: 'asistencia', label: 'Asistencia' },
   { id: 'stock', label: 'Stock' },
   { id: 'equipo', label: 'Equipo' },
@@ -66,6 +69,7 @@ const SECCIONES = [
     label: 'Mayorista',
     tabs: ['resumen', 'clientes', 'top-clientes', 'embudo', 'semana', 'historico', 'objetivos'],
   },
+  { id: 'tecnico', label: 'Servicio técnico', tabs: ['arreglos'] },
   { id: 'oficina', label: 'Oficina', tabs: ['asistencia', 'stock', 'equipo'] },
 ] as const satisfies readonly { id: string; label: string; tabs: readonly TabId[] }[];
 
@@ -77,6 +81,7 @@ interface AdminDashboardProps {
   initialContacts: Contact[];
   initialClientSales: ClientSale[];
   initialHistory: PeriodHistoryRow[];
+  initialRepairs: Repair[];
   oficina: {
     today: string;
     staff: Staff[];
@@ -96,8 +101,10 @@ export function AdminDashboard({
   initialContacts,
   initialClientSales,
   initialHistory,
+  initialRepairs,
   oficina,
 }: AdminDashboardProps) {
+  const [repairs, setRepairs] = useState<Repair[]>(initialRepairs);
   const [staff, setStaff] = useState<Staff[]>(oficina.staff);
   const [events, setEvents] = useState<ClockEvent[]>(oficina.events);
   const [tasks, setTasks] = useState<Task[]>(oficina.tasks);
@@ -236,6 +243,15 @@ export function AdminDashboard({
           }
           onPeriodChange={setPeriod}
           supabase={supabase}
+        />
+      )}
+      {tab === 'arreglos' && (
+        <ServicioTecnicoTab
+          repairs={repairs}
+          sellers={sellers}
+          today={oficina.today}
+          supabase={supabase}
+          onChange={setRepairs}
         />
       )}
       {tab === 'asistencia' && (

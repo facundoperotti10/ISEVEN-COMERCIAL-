@@ -2,10 +2,27 @@ import { requireSeller } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAll } from '@/lib/fetch-all';
 import { VendedorDashboard } from '@/components/vendedor/VendedorDashboard';
+import { TecnicoDashboard } from '@/components/tecnico/TecnicoDashboard';
+import { sellerArea } from '@/lib/calc';
 
 export default async function VendedorPage() {
   const profile = await requireSeller();
   const supabase = await createClient();
+
+  // Servicio técnico: en vez del tablero de ventas, la pantalla para cargar arreglos.
+  const { data: me } = await supabase.from('sellers').select('*').eq('id', profile.sellerId!).single();
+  if (me && sellerArea(me) === 'tecnico') {
+    const repairs = await fetchAll((from, to) =>
+      supabase
+        .from('repairs')
+        .select('*')
+        .eq('seller_id', me.id)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(from, to)
+    );
+    return <TecnicoDashboard seller={me} initialRepairs={repairs} name={profile.displayName ?? me.name} />;
+  }
 
   // Si el mes ya terminó, lo cierra y arranca el siguiente (también corre solo cada noche).
   await supabase.rpc('auto_rollover_period');

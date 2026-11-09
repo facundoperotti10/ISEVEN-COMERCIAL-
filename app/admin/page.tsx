@@ -30,6 +30,7 @@ export default async function AdminPage() {
     { data: shifts },
     { data: lots },
     { data: units },
+    repairs,
   ] = await Promise.all([
     supabase.from('sellers').select('*').order('created_at', { ascending: true }),
     supabase.from('period').select('*').eq('id', 1).single(),
@@ -51,6 +52,14 @@ export default async function AdminPage() {
     supabase.from('saturday_shifts').select('*').gte('date', today).order('date'),
     supabase.from('stock_lots').select('*').gte('received_at', `${dateARPlus(-21)}T00:00:00`).order('received_at'),
     supabase.from('reserved_units').select('*').gte('created_at', `${dateARPlus(-21)}T00:00:00`).order('created_at'),
+    fetchAll((from, to) =>
+      supabase
+        .from('repairs')
+        .select('*')
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(from, to)
+    ),
   ]);
 
   if (!period) {
@@ -68,6 +77,7 @@ export default async function AdminPage() {
       initialContacts={contacts}
       initialClientSales={clientSales ?? []}
       initialHistory={history ?? []}
+      initialRepairs={repairs}
       oficina={{
         today,
         staff: staff ?? [],

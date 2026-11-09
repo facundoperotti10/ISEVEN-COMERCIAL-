@@ -752,3 +752,49 @@ export function topClients(
     .filter((r) => r.compras > 0)
     .sort((a, b) => b.compras - a.compras || b.comprasTotal - a.comprasTotal || b.ultimaCompra.localeCompare(a.ultimaCompra));
 }
+
+// ---------------------------------------------------------------------------
+// Servicio técnico: arreglos
+// ---------------------------------------------------------------------------
+
+export type Repair = {
+  id: string;
+  seller_id: string;
+  date: string; // yyyy-mm-dd
+  imei: string;
+  modelo: string;
+  arreglo: string;
+  observacion: string | null;
+  created_at: string;
+};
+
+/** Deja solo los dígitos del IMEI (se carga a mano y a veces viene con espacios o guiones). */
+export function limpiarImei(imei: string): string {
+  return imei.replace(/\D/g, '');
+}
+
+/** Arreglos que coinciden con el texto buscado (IMEI, modelo, arreglo u observación). */
+export function buscarArreglos(repairs: Repair[], query: string): Repair[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return repairs;
+  const qDigits = limpiarImei(q);
+  return repairs.filter(
+    (r) =>
+      (qDigits.length >= 3 && r.imei.includes(qDigits)) ||
+      r.modelo.toLowerCase().includes(q) ||
+      r.arreglo.toLowerCase().includes(q) ||
+      (r.observacion ?? '').toLowerCase().includes(q)
+  );
+}
+
+/** Cantidad de arreglos por modelo, de mayor a menor. */
+export function arreglosPorModelo(repairs: Repair[]): { modelo: string; cantidad: number }[] {
+  const map = new Map<string, { modelo: string; cantidad: number }>();
+  for (const r of repairs) {
+    const key = r.modelo.trim().toLowerCase();
+    const row = map.get(key) ?? { modelo: r.modelo.trim(), cantidad: 0 };
+    row.cantidad += 1;
+    map.set(key, row);
+  }
+  return [...map.values()].sort((a, b) => b.cantidad - a.cantidad);
+}

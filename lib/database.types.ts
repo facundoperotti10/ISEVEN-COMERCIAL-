@@ -285,6 +285,19 @@ export interface Database {
         { id: string; contact_id: string; seller_id: string; date: string; created_at: string },
         { contact_id: string; seller_id: string; date?: string }
       >;
+      repairs: TableOf<
+        {
+          id: string;
+          seller_id: string;
+          date: string;
+          imei: string;
+          modelo: string;
+          arreglo: string;
+          observacion: string | null;
+          created_at: string;
+        },
+        { seller_id: string; date?: string; imei: string; modelo: string; arreglo: string; observacion?: string | null }
+      >;
       stock_requests: TableOf<
         {
           id: string;
