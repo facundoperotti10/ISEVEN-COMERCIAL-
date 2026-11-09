@@ -11,6 +11,7 @@ import {
   formatNumber,
   formatPct,
   sourceBreakdown,
+  type ClientSale,
   type Contact,
   type Period,
   type Seller,
@@ -24,6 +25,7 @@ interface SummaryTabProps {
   teamAverages: TeamAverages;
   period: Period;
   contacts: Contact[];
+  clientSales?: ClientSale[];
   sellers: Seller[];
 }
 
@@ -39,7 +41,7 @@ function downloadCSV(csv: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function SummaryTab({ metrics, teamAverages, period, contacts, sellers }: SummaryTabProps) {
+export function SummaryTab({ metrics, teamAverages, period, contacts, clientSales = [], sellers }: SummaryTabProps) {
   const projection = buildTeamProjection(metrics, period);
   const today = todayAR();
   const sellersById = Object.fromEntries(sellers.map((s) => [s.id, s]));
@@ -53,7 +55,7 @@ export function SummaryTab({ metrics, teamAverages, period, contacts, sellers }:
     .map((m) => ({ seller: m.seller, diagnostico: diagnosticar(m, teamAverages) }))
     .filter((a) => a.diagnostico !== 'saludable');
 
-  const fuentes = sourceBreakdown(contacts);
+  const fuentes = sourceBreakdown(contacts, clientSales);
 
   return (
     <div className="flex flex-col gap-4">

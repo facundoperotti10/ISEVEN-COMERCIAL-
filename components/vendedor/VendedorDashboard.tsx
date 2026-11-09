@@ -23,6 +23,7 @@ import {
   buildTeamRanking,
   salesByDay,
   seguimientosPendientes,
+  type ClientSale,
   type Contact,
   type Period,
   type Seller,
@@ -42,6 +43,7 @@ interface VendedorDashboardProps {
   seller: Seller;
   period: Period;
   initialContacts: Contact[];
+  initialClientSales: ClientSale[];
   initialRanking: TeamRankingRaw[];
   sellerName: string;
 }
@@ -50,18 +52,26 @@ export function VendedorDashboard({
   seller,
   period,
   initialContacts,
+  initialClientSales,
   initialRanking,
   sellerName,
 }: VendedorDashboardProps) {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+  const [clientSales, setClientSales] = useState<ClientSale[]>(initialClientSales);
   const [tab, setTab] = useState<'hoy' | 'clientes' | 'progreso'>('hoy');
   const [celebration, setCelebration] = useState<CelebrationTrigger | null>(null);
   const dismissCelebration = useCallback(() => setCelebration(null), []);
   const supabase = useMemo(() => createClient(), []);
   const today = todayAR();
 
-  const metrics = useMemo(() => buildSellerMetrics(seller, contacts, period), [seller, contacts, period]);
-  const dailySales = useMemo(() => salesByDay(seller.id, contacts, period), [seller.id, contacts, period]);
+  const metrics = useMemo(
+    () => buildSellerMetrics(seller, contacts, period, new Date(), clientSales),
+    [seller, contacts, period, clientSales]
+  );
+  const dailySales = useMemo(
+    () => salesByDay(seller.id, contacts, period, clientSales),
+    [seller.id, contacts, period, clientSales]
+  );
   const pendientes = useMemo(
     () => seguimientosPendientes(seller.id, contacts, today),
     [seller.id, contacts, today]
@@ -150,6 +160,38 @@ export function VendedorDashboard({
     if (error) setContacts(prev);
   }
 
+  async function handleAddSale(contactId: string) {
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimistic: ClientSale = {
+      id: optimisticId,
+      contact_id: contactId,
+      seller_id: seller.id,
+      date: today,
+      created_at: new Date().toISOString(),
+    };
+    setClientSales((prev) => [optimistic, ...prev]);
+
+    const { data: inserted, error } = await supabase
+      .from('client_sales')
+      .insert({ contact_id: contactId, seller_id: seller.id })
+      .select()
+      .single();
+
+    if (error || !inserted) {
+      console.error('No se pudo registrar la venta:', error);
+      setClientSales((prev) => prev.filter((s) => s.id !== optimisticId));
+      return;
+    }
+    setClientSales((prev) => prev.map((s) => (s.id === optimisticId ? inserted : s)));
+  }
+
+  async function handleDeleteSale(id: string) {
+    const prev = clientSales;
+    setClientSales((s) => s.filter((x) => x.id !== id));
+    const { error } = await supabase.from('client_sales').delete().eq('id', id);
+    if (error) setClientSales(prev);
+  }
+
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">
       <SaleCelebration trigger={celebration} onDone={dismissCelebration} />
@@ -223,7 +265,15 @@ export function VendedorDashboard({
       {tab === 'clientes' && (
         <div className="card p-4">
           <h2 className="mb-3 font-display text-sm font-bold text-text">Mis clientes</h2>
-          <ClientsFolder contacts={contacts} today={today} onUpdate={handleUpdate} onDelete={handleDelete} />
+          <ClientsFolder
+            contacts={contacts}
+            clientSales={clientSales}
+            today={today}
+            onUpdate={handleUpdate}
+            onDelete={handleDelete}
+            onAddSale={handleAddSale}
+            onDeleteSale={handleDeleteSale}
+          />
         </div>
       )}
 
@@ -260,6 +310,7 @@ export function VendedorDashboard({
             period={period}
             metrics={metrics}
             contacts={contacts}
+            clientSales={clientSales}
             today={today}
           />
         </div>

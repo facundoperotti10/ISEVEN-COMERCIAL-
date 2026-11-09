@@ -1,10 +1,19 @@
 'use client';
 
-import { getWeekRanges, variacionPct, weekMetricsFor, type Contact, type Seller, type WeekMetrics } from '@/lib/calc';
+import {
+  getWeekRanges,
+  variacionPct,
+  weekMetricsFor,
+  type ClientSale,
+  type Contact,
+  type Seller,
+  type WeekMetrics,
+} from '@/lib/calc';
 
 interface WeekTabProps {
   sellers: Seller[];
   contacts: Contact[];
+  clientSales?: ClientSale[];
 }
 
 const FIELDS: { key: keyof WeekMetrics; label: string }[] = [
@@ -27,7 +36,7 @@ function Variation({ current, previous }: { current: number; previous: number })
   );
 }
 
-export function WeekTab({ sellers, contacts }: WeekTabProps) {
+export function WeekTab({ sellers, contacts, clientSales = [] }: WeekTabProps) {
   const { currentStart, currentEnd, previousStart, previousEnd } = getWeekRanges();
 
   return (
@@ -38,8 +47,8 @@ export function WeekTab({ sellers, contacts }: WeekTabProps) {
       </p>
 
       {sellers.map((seller) => {
-        const current = weekMetricsFor(seller.id, contacts, currentStart, currentEnd);
-        const previous = weekMetricsFor(seller.id, contacts, previousStart, previousEnd);
+        const current = weekMetricsFor(seller.id, contacts, currentStart, currentEnd, clientSales);
+        const previous = weekMetricsFor(seller.id, contacts, previousStart, previousEnd, clientSales);
 
         return (
           <div key={seller.id} className="card p-4">

@@ -20,6 +20,7 @@ export default async function AdminPage() {
     { data: sellers },
     { data: period },
     contacts,
+    { data: clientSales },
     { data: history },
     { data: staff },
     { data: events },
@@ -40,6 +41,7 @@ export default async function AdminPage() {
         .order('id', { ascending: true })
         .range(from, to)
     ),
+    supabase.from('client_sales').select('*'),
     supabase.from('period_history').select('*').order('start_date', { ascending: false }),
     supabase.from('staff').select(STAFF_COLUMNS).eq('active', true).order('sort'),
     supabase.from('clock_events').select('*').gte('work_date', month.start).lte('work_date', month.end).order('at'),
@@ -64,6 +66,7 @@ export default async function AdminPage() {
       initialSellers={sellers ?? []}
       initialPeriod={period}
       initialContacts={contacts}
+      initialClientSales={clientSales ?? []}
       initialHistory={history ?? []}
       oficina={{
         today,

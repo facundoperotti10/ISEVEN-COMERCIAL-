@@ -279,6 +279,10 @@ export interface Database {
           done_at?: string | null;
         }
       >;
+      client_sales: TableOf<
+        { id: string; contact_id: string; seller_id: string; date: string; created_at: string },
+        { contact_id: string; seller_id: string; date?: string }
+      >;
       stock_requests: TableOf<
         {
           id: string;

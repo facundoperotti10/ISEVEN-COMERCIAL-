@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ESTADOS, ESTADO_LABEL, fuenteOptions, type Contact } from '@/lib/calc';
+import { ESTADOS, ESTADO_LABEL, fuenteOptions, type ClientSale, type Contact } from '@/lib/calc';
 import type { ContactEstado } from '@/lib/database.types';
 import { fechaLarga } from '@/lib/oficina';
 
@@ -23,16 +23,27 @@ function waNumber(tel: string): string {
 
 interface Props {
   contacts: Contact[];
+  clientSales?: ClientSale[];
   today: string;
   onUpdate: (id: string, patch: Partial<Pick<Contact, 'estado' | 'observacion' | 'fuente'>>) => void;
   onDelete: (id: string) => void;
+  onAddSale?: (contactId: string) => void;
+  onDeleteSale?: (id: string) => void;
 }
 
 /**
  * Carpeta de clientes: lista compacta (nombre, estado, fecha) con buscador y
  * filtros. Cada cliente se abre para ver y editar el detalle.
  */
-export function ClientsFolder({ contacts, today, onUpdate, onDelete }: Props) {
+export function ClientsFolder({
+  contacts,
+  clientSales = [],
+  today,
+  onUpdate,
+  onDelete,
+  onAddSale,
+  onDeleteSale,
+}: Props) {
   const [q, setQ] = useState('');
   const [estado, setEstado] = useState<'todos' | ContactEstado>('todos');
   const [cuando, setCuando] = useState<'todo' | 'hoy' | 'fecha'>('todo');
@@ -189,6 +200,43 @@ export function ClientsFolder({ contacts, today, onUpdate, onDelete }: Props) {
                         className={`${input} mt-0.5 block w-full text-sm normal-case tracking-normal`}
                       />
                     </label>
+                    {c.estado === 'vendido' && onAddSale && (
+                      <div className="rounded-[10px] border border-border bg-bg p-2.5 sm:col-span-2">
+                        {(() => {
+                          const ventasRepetidas = clientSales
+                            .filter((s) => s.contact_id === c.id)
+                            .sort((a, b) => b.date.localeCompare(a.date));
+                          const total = 1 + ventasRepetidas.length;
+                          return (
+                            <>
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-xs font-semibold text-text">Ventas: {total}</span>
+                                <button
+                                  onClick={() => onAddSale(c.id)}
+                                  className="rounded-full bg-green/15 px-3 py-1 text-xs font-semibold text-green"
+                                >
+                                  + Registrar otra venta
+                                </button>
+                              </div>
+                              {ventasRepetidas.length > 0 && (
+                                <ul className="mt-2 flex flex-col gap-1">
+                                  {ventasRepetidas.map((s) => (
+                                    <li key={s.id} className="flex items-center justify-between text-[11px] text-text-muted">
+                                      <span>{s.date === today ? 'Hoy' : fechaLarga(s.date)}</span>
+                                      {onDeleteSale && (
+                                        <button onClick={() => onDeleteSale(s.id)} className="text-text-muted hover:text-red">
+                                          Borrar
+                                        </button>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
                     <div className="flex justify-end gap-2 sm:col-span-2">
                       {confirmDelete === c.id ? (
                         <>

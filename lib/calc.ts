@@ -22,6 +22,16 @@ export type Contact = {
   updated_at: string;
 };
 
+/** Una venta repetida a un cliente que ya existe (ej. mayorista). No reemplaza
+ *  `contacts.estado = 'vendido'` (la primera venta) — se suma a él. */
+export type ClientSale = {
+  id: string;
+  contact_id: string;
+  seller_id: string;
+  date: string; // yyyy-mm-dd
+  created_at: string;
+};
+
 export type Period = {
   name: string;
   start_date: string;
@@ -124,17 +134,19 @@ export function contactsForSeller(sellerId: string, contacts: Contact[]): Contac
   return contacts.filter((c) => c.seller_id === sellerId);
 }
 
-/** Cantidad de ventas nuevas (estado = vendido) del período para un vendedor. */
-export function ventasNuevas(sellerId: string, contacts: Contact[]): number {
-  return contacts.filter((c) => c.seller_id === sellerId && c.estado === 'vendido').length;
+/** Cantidad de ventas nuevas (estado = vendido, + ventas repetidas) del período para un vendedor. */
+export function ventasNuevas(sellerId: string, contacts: Contact[], clientSales: ClientSale[] = []): number {
+  const primeras = contacts.filter((c) => c.seller_id === sellerId && c.estado === 'vendido').length;
+  const repetidas = clientSales.filter((s) => s.seller_id === sellerId).length;
+  return primeras + repetidas;
 }
 
-export function currentSales(seller: Seller, contacts: Contact[]): number {
-  return seller.initial_sales + ventasNuevas(seller.id, contacts);
+export function currentSales(seller: Seller, contacts: Contact[], clientSales: ClientSale[] = []): number {
+  return seller.initial_sales + ventasNuevas(seller.id, contacts, clientSales);
 }
 
-export function remainingSales(seller: Seller, contacts: Contact[]): number {
-  return Math.max(seller.target - currentSales(seller, contacts), 0);
+export function remainingSales(seller: Seller, contacts: Contact[], clientSales: ClientSale[] = []): number {
+  return Math.max(seller.target - currentSales(seller, contacts, clientSales), 0);
 }
 
 export function paceActual(nuevas: number, elapsedDays: number): number {
@@ -251,20 +263,22 @@ export function buildSellerMetrics(
   seller: Seller,
   allContacts: Contact[],
   period: Period,
-  today: Date = new Date()
+  today: Date = new Date(),
+  allClientSales: ClientSale[] = []
 ): SellerMetrics {
   // Solo cuenta lo cargado dentro del período activo: cada mes arranca de cero.
   const periodContacts = contactsInPeriod(allContacts, period);
   const contacts = contactsForSeller(seller.id, periodContacts);
+  const periodClientSales = allClientSales.filter((s) => isInPeriod(s.date, period));
   const progress = getPeriodProgress(period, today);
 
   const consultas = contacts.length;
   const respondidos = leadsRespondidos(seller.id, periodContacts);
   const presupuestos = presupuestosCount(seller.id, periodContacts);
   const seguimientos = seguimientosCount(seller.id, periodContacts);
-  const nuevas = ventasNuevas(seller.id, periodContacts);
-  const sales = currentSales(seller, periodContacts);
-  const remaining = remainingSales(seller, periodContacts);
+  const nuevas = ventasNuevas(seller.id, periodContacts, periodClientSales);
+  const sales = currentSales(seller, periodContacts, periodClientSales);
+  const remaining = remainingSales(seller, periodContacts, periodClientSales);
 
   const pActual = paceActual(nuevas, progress.elapsed);
   const pNeeded = paceNeeded(remaining, progress.remaining);
@@ -415,10 +429,17 @@ export function getWeekRanges(today: Date = new Date()) {
   return { currentStart, currentEnd, previousStart, previousEnd };
 }
 
-export function weekMetricsFor(sellerId: string, contacts: Contact[], start: Date, end: Date): WeekMetrics {
+export function weekMetricsFor(
+  sellerId: string,
+  contacts: Contact[],
+  start: Date,
+  end: Date,
+  clientSales: ClientSale[] = []
+): WeekMetrics {
   const inWeek = contacts.filter((c) => c.seller_id === sellerId && inRange(c.date, start, end));
+  const repetidas = clientSales.filter((s) => s.seller_id === sellerId && inRange(s.date, start, end)).length;
   return {
-    ventas: inWeek.filter((c) => c.estado === 'vendido').length,
+    ventas: inWeek.filter((c) => c.estado === 'vendido').length + repetidas,
     consultas: inWeek.length,
     respondidos: inWeek.filter((c) => c.estado !== 'consulta').length,
     presupuestos: inWeek.filter((c) =>
@@ -442,9 +463,15 @@ export interface DailySales {
   ventas: number;
 }
 
-export function salesByDay(sellerId: string | null, contacts: Contact[], period: Period): DailySales[] {
+export function salesByDay(
+  sellerId: string | null,
+  contacts: Contact[],
+  period: Period,
+  clientSales: ClientSale[] = []
+): DailySales[] {
   const filtered = sellerId ? contactsForSeller(sellerId, contacts) : contacts;
   const sold = filtered.filter((c) => c.estado === 'vendido');
+  const repetidas = sellerId ? clientSales.filter((s) => s.seller_id === sellerId) : clientSales;
 
   const start = toStartOfDay(period.start_date);
   const end = toStartOfDay(period.end_date);
@@ -452,7 +479,8 @@ export function salesByDay(sellerId: string | null, contacts: Contact[], period:
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const key = d.toISOString().slice(0, 10);
-    days.push({ date: key, ventas: sold.filter((c) => c.date === key).length });
+    const ventas = sold.filter((c) => c.date === key).length + repetidas.filter((s) => s.date === key).length;
+    days.push({ date: key, ventas });
   }
 
   return days;
@@ -574,7 +602,7 @@ export interface SourceBreakdown {
 }
 
 /** Cuántos clientes (y ventas) entraron por cada fuente, para ver qué canal rinde mejor. */
-export function sourceBreakdown(contacts: Contact[]): SourceBreakdown[] {
+export function sourceBreakdown(contacts: Contact[], clientSales: ClientSale[] = []): SourceBreakdown[] {
   const groups = new Map<string, { consultas: number; ventas: number }>();
   for (const c of contacts) {
     const key = c.fuente?.trim() || SIN_FUENTE;
@@ -582,6 +610,15 @@ export function sourceBreakdown(contacts: Contact[]): SourceBreakdown[] {
     g.consultas += 1;
     if (c.estado === 'vendido') g.ventas += 1;
     groups.set(key, g);
+  }
+  if (clientSales.length > 0) {
+    const fuenteByContactId = new Map(contacts.map((c) => [c.id, c.fuente?.trim() || SIN_FUENTE]));
+    for (const s of clientSales) {
+      const key = fuenteByContactId.get(s.contact_id) ?? SIN_FUENTE;
+      const g = groups.get(key) ?? { consultas: 0, ventas: 0 };
+      g.ventas += 1;
+      groups.set(key, g);
+    }
   }
   return [...groups.entries()]
     .map(([fuente, g]) => ({ fuente, consultas: g.consultas, ventas: g.ventas, convPct: pct(g.ventas, g.consultas) }))

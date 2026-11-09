@@ -7,6 +7,7 @@ import { OficinaEnVivo } from '@/components/oficina/OficinaEnVivo';
 import {
   buildSellerMetrics,
   buildTeamAverages,
+  type ClientSale,
   type Contact,
   type Period,
   type PeriodHistoryRow,
@@ -55,6 +56,7 @@ interface AdminDashboardProps {
   initialSellers: Seller[];
   initialPeriod: Period;
   initialContacts: Contact[];
+  initialClientSales: ClientSale[];
   initialHistory: PeriodHistoryRow[];
   oficina: {
     today: string;
@@ -69,7 +71,14 @@ interface AdminDashboardProps {
   };
 }
 
-export function AdminDashboard({ initialSellers, initialPeriod, initialContacts, initialHistory, oficina }: AdminDashboardProps) {
+export function AdminDashboard({
+  initialSellers,
+  initialPeriod,
+  initialContacts,
+  initialClientSales,
+  initialHistory,
+  oficina,
+}: AdminDashboardProps) {
   const [staff, setStaff] = useState<Staff[]>(oficina.staff);
   const [events, setEvents] = useState<ClockEvent[]>(oficina.events);
   const [tasks, setTasks] = useState<Task[]>(oficina.tasks);
@@ -80,14 +89,15 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
   const [sellers, setSellers] = useState<Seller[]>(initialSellers);
   const [period, setPeriod] = useState<Period>(initialPeriod);
   const contacts = initialContacts;
+  const clientSales = initialClientSales;
   const [tab, setTab] = useState<TabId>('resumen');
   const supabase = useMemo(() => createClient(), []);
 
   const activeSellers = useMemo(() => sellers.filter((s) => s.active), [sellers]);
 
   const metrics = useMemo(
-    () => activeSellers.map((s) => buildSellerMetrics(s, contacts, period)),
-    [activeSellers, contacts, period]
+    () => activeSellers.map((s) => buildSellerMetrics(s, contacts, period, new Date(), clientSales)),
+    [activeSellers, contacts, period, clientSales]
   );
 
   const teamAverages = useMemo(() => buildTeamAverages(metrics), [metrics]);
@@ -134,7 +144,14 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
       </nav>
 
       {tab === 'resumen' && (
-        <SummaryTab metrics={metrics} teamAverages={teamAverages} period={period} contacts={contacts} sellers={activeSellers} />
+        <SummaryTab
+          metrics={metrics}
+          teamAverages={teamAverages}
+          period={period}
+          contacts={contacts}
+          clientSales={clientSales}
+          sellers={activeSellers}
+        />
       )}
       {tab === 'vendedores' && <SellersTab metrics={metrics} teamAverages={teamAverages} />}
       {tab === 'clientes' && (
@@ -142,9 +159,15 @@ export function AdminDashboard({ initialSellers, initialPeriod, initialContacts,
       )}
       {tab === 'embudo' && <FunnelTab metrics={metrics} />}
       {tab === 'ranking' && <RankingTab metrics={metrics} />}
-      {tab === 'semana' && <WeekTab sellers={activeSellers} contacts={contacts} />}
+      {tab === 'semana' && <WeekTab sellers={activeSellers} contacts={contacts} clientSales={clientSales} />}
       {tab === 'historico' && (
-        <HistoryTab sellers={activeSellers} contacts={contacts} period={period} history={initialHistory} />
+        <HistoryTab
+          sellers={activeSellers}
+          contacts={contacts}
+          clientSales={clientSales}
+          period={period}
+          history={initialHistory}
+        />
       )}
       {tab === 'objetivos' && (
         <GoalsTab

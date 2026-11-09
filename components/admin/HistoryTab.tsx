@@ -9,8 +9,10 @@ import {
   currentSales,
   formatPct,
   groupHistory,
+  isInPeriod,
   pct,
   salesByDay,
+  type ClientSale,
   type Contact,
   type Period,
   type PeriodHistoryRow,
@@ -20,22 +22,24 @@ import {
 interface HistoryTabProps {
   sellers: Seller[];
   contacts: Contact[];
+  clientSales?: ClientSale[];
   period: Period;
   history: PeriodHistoryRow[];
 }
 
-export function HistoryTab({ sellers, contacts, period, history }: HistoryTabProps) {
+export function HistoryTab({ sellers, contacts, clientSales = [], period, history }: HistoryTabProps) {
   const [sellerFilter, setSellerFilter] = useState<string>('todos');
 
   const dailySales = useMemo(
-    () => salesByDay(sellerFilter === 'todos' ? null : sellerFilter, contacts, period),
-    [sellerFilter, contacts, period]
+    () => salesByDay(sellerFilter === 'todos' ? null : sellerFilter, contacts, period, clientSales),
+    [sellerFilter, contacts, period, clientSales]
   );
 
   const bySellerBar = useMemo(() => {
     const periodContacts = contactsInPeriod(contacts, period);
-    return sellers.map((s) => ({ name: s.name, value: currentSales(s, periodContacts) }));
-  }, [sellers, contacts, period]);
+    const periodClientSales = clientSales.filter((s) => isInPeriod(s.date, period));
+    return sellers.map((s) => ({ name: s.name, value: currentSales(s, periodContacts, periodClientSales) }));
+  }, [sellers, contacts, period, clientSales]);
 
   const closedMonths = useMemo(() => groupHistory(history), [history]);
 

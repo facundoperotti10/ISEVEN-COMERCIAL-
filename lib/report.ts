@@ -7,6 +7,7 @@ import {
   seguimientosCount,
   SEMAFORO_LABEL,
   todayAR,
+  type ClientSale,
   type Contact,
   type Period,
   type Seller,
@@ -40,12 +41,23 @@ export interface DailyReportData {
   /** Contactos de días anteriores que se tocaron hoy y hoy figuran como vendidos. */
   cerradosDeAntes: Contact[];
   actualizadosDeAntes: number;
+  /** Ventas repetidas (clientes ya existentes) fechadas hoy — nombre del cliente de cada una. */
+  ventasRepetidas: string[];
 }
 
-export function buildDailyReportData(sellerId: string, contacts: Contact[], date: string = todayAR()): DailyReportData {
+export function buildDailyReportData(
+  sellerId: string,
+  contacts: Contact[],
+  date: string = todayAR(),
+  clientSales: ClientSale[] = []
+): DailyReportData {
   const mine = contacts.filter((c) => c.seller_id === sellerId);
   const delDia = mine.filter((c) => c.date === date);
   const deAntesTocadosHoy = mine.filter((c) => c.date < date && todayAR(new Date(c.updated_at)) === date);
+  const nombreByContactId = new Map(contacts.map((c) => [c.id, c.nombre]));
+  const ventasRepetidas = clientSales
+    .filter((s) => s.seller_id === sellerId && s.date === date)
+    .map((s) => nombreByContactId.get(s.contact_id) ?? 'Cliente');
 
   return {
     date,
@@ -59,6 +71,7 @@ export function buildDailyReportData(sellerId: string, contacts: Contact[], date
     sinRespuesta: delDia.filter((c) => c.estado === 'consulta').length,
     cerradosDeAntes: deAntesTocadosHoy.filter((c) => c.estado === 'vendido'),
     actualizadosDeAntes: deAntesTocadosHoy.length,
+    ventasRepetidas,
   };
 }
 
@@ -70,7 +83,7 @@ export function buildDailyReportText(
   metrics: SellerMetrics,
   d: DailyReportData
 ): string {
-  const ventasHoy = d.vendidos.length + d.cerradosDeAntes.length;
+  const ventasHoy = d.vendidos.length + d.cerradosDeAntes.length + d.ventasRepetidas.length;
   const lines: string[] = [];
 
   lines.push(`📊 *Reporte diario — ${sellerName}*`);
@@ -93,6 +106,7 @@ export function buildDailyReportText(
     lines.push('✅ *Vendidos*');
     d.vendidos.forEach((c) => lines.push(`• ${c.nombre}`));
     d.cerradosDeAntes.forEach((c) => lines.push(`• ${c.nombre} (consulta del ${c.date.slice(8, 10)}/${c.date.slice(5, 7)})`));
+    d.ventasRepetidas.forEach((nombre) => lines.push(`• ${nombre} (venta repetida)`));
   }
 
   if (d.actualizadosDeAntes > 0) {
