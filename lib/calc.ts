@@ -658,3 +658,88 @@ export function buildTeamRanking(rows: TeamRankingRaw[]): TeamRankingRow[] {
     }))
     .sort((a, b) => b.cumplimientoPct - a.cumplimientoPct);
 }
+
+// ---------------------------------------------------------------------------
+// Top clientes (mayoristas): quién compra más, para descuentos y obsequios
+// ---------------------------------------------------------------------------
+
+export interface TopClient {
+  key: string;
+  nombre: string;
+  telefono: string | null;
+  sellerIds: string[];
+  /** Compras dentro del rango elegido (primera venta + ventas repetidas). */
+  compras: number;
+  /** Compras de toda la historia. */
+  comprasTotal: number;
+  primeraCompra: string;
+  ultimaCompra: string;
+}
+
+function normalizarNombre(nombre: string): string {
+  return nombre
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Identifica al mismo cliente aunque se haya cargado más de una vez:
+ *  por teléfono (últimos 10 dígitos) o, si no tiene, por nombre dentro del mismo vendedor. */
+export function clientKey(c: Pick<Contact, 'telefono' | 'nombre' | 'seller_id'>): string {
+  const digits = (c.telefono ?? '').replace(/\D/g, '');
+  if (digits.length >= 8) return `t:${digits.slice(-10)}`;
+  return `n:${c.seller_id}:${normalizarNombre(c.nombre)}`;
+}
+
+/** Ranking de clientes por cantidad de compras. Cada contacto "vendido" cuenta como
+ *  una compra (en su fecha) y cada venta repetida suma otra. `range` filtra por fecha. */
+export function topClients(
+  contacts: Contact[],
+  clientSales: ClientSale[],
+  range?: { start: string; end: string }
+): TopClient[] {
+  const byId = new Map(contacts.map((c) => [c.id, c]));
+  const map = new Map<string, TopClient>();
+  const latest = new Map<string, string>();
+  const inRango = (d: string) => !range || (d >= range.start && d <= range.end);
+
+  const add = (c: Contact, date: string, sellerId: string) => {
+    const key = clientKey(c);
+    let row = map.get(key);
+    if (!row) {
+      row = {
+        key,
+        nombre: c.nombre,
+        telefono: c.telefono,
+        sellerIds: [],
+        compras: 0,
+        comprasTotal: 0,
+        primeraCompra: date,
+        ultimaCompra: date,
+      };
+      map.set(key, row);
+    }
+    if (c.date >= (latest.get(key) ?? '')) {
+      latest.set(key, c.date);
+      row.nombre = c.nombre;
+      row.telefono = c.telefono || row.telefono;
+    }
+    if (!row.sellerIds.includes(sellerId)) row.sellerIds.push(sellerId);
+    row.comprasTotal += 1;
+    if (inRango(date)) row.compras += 1;
+    if (date < row.primeraCompra) row.primeraCompra = date;
+    if (date > row.ultimaCompra) row.ultimaCompra = date;
+  };
+
+  for (const c of contacts) if (c.estado === 'vendido') add(c, c.date, c.seller_id);
+  for (const s of clientSales) {
+    const c = byId.get(s.contact_id);
+    if (c) add(c, s.date, s.seller_id);
+  }
+
+  return [...map.values()]
+    .filter((r) => r.compras > 0)
+    .sort((a, b) => b.compras - a.compras || b.comprasTotal - a.comprasTotal || b.ultimaCompra.localeCompare(a.ultimaCompra));
+}

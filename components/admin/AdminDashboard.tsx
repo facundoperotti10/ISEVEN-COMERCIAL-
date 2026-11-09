@@ -16,6 +16,7 @@ import {
 import { SummaryTab } from '@/components/admin/SummaryTab';
 import { SellersTab } from '@/components/admin/SellersTab';
 import { ContactsTab } from '@/components/admin/ContactsTab';
+import { TopClientsTab } from '@/components/admin/TopClientsTab';
 import { FunnelTab } from '@/components/admin/FunnelTab';
 import { RankingTab } from '@/components/admin/RankingTab';
 import { WeekTab } from '@/components/admin/WeekTab';
@@ -39,6 +40,7 @@ const TABS = [
   { id: 'resumen', label: 'Resumen' },
   { id: 'vendedores', label: 'Vendedores' },
   { id: 'clientes', label: 'Clientes' },
+  { id: 'top-clientes', label: 'Top clientes' },
   { id: 'embudo', label: 'Embudo' },
   { id: 'ranking', label: 'Ranking' },
   { id: 'semana', label: 'Semana' },
@@ -156,6 +158,15 @@ export function AdminDashboard({
       {tab === 'vendedores' && <SellersTab metrics={metrics} teamAverages={teamAverages} />}
       {tab === 'clientes' && (
         <ContactsTab contacts={contacts} sellers={sellers} />
+      )}
+      {tab === 'top-clientes' && (
+        <TopClientsTab
+          contacts={contacts}
+          clientSales={clientSales}
+          sellers={sellers}
+          period={period}
+          today={oficina.today}
+        />
       )}
       {tab === 'embudo' && <FunnelTab metrics={metrics} />}
       {tab === 'ranking' && <RankingTab metrics={metrics} />}
