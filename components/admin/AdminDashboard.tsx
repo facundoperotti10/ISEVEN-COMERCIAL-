@@ -21,6 +21,8 @@ import { SellersTab } from '@/components/admin/SellersTab';
 import { ContactsTab } from '@/components/admin/ContactsTab';
 import { TopClientsTab } from '@/components/admin/TopClientsTab';
 import { ServicioTecnicoTab } from '@/components/admin/ServicioTecnicoTab';
+import { StockEnCaminoTab } from '@/components/admin/StockEnCaminoTab';
+import type { PedidoEntrante, PedidoItem } from '@/lib/importacion';
 import { FunnelTab } from '@/components/admin/FunnelTab';
 import { RankingTab } from '@/components/admin/RankingTab';
 import { WeekTab } from '@/components/admin/WeekTab';
@@ -51,6 +53,7 @@ const TABS = [
   { id: 'historico', label: 'Histórico' },
   { id: 'objetivos', label: 'Objetivos' },
   { id: 'arreglos', label: 'Arreglos' },
+  { id: 'en-camino', label: 'Pedidos de USA' },
   { id: 'asistencia', label: 'Asistencia' },
   { id: 'stock', label: 'Stock' },
   { id: 'equipo', label: 'Equipo' },
@@ -71,6 +74,7 @@ const SECCIONES = [
     tabs: ['resumen', 'clientes', 'top-clientes', 'embudo', 'semana', 'historico', 'objetivos'],
   },
   { id: 'tecnico', label: 'Servicio técnico', tabs: ['arreglos'] },
+  { id: 'importacion', label: 'Stock en camino', tabs: ['en-camino'] },
   { id: 'oficina', label: 'Oficina', tabs: ['asistencia', 'stock', 'equipo'] },
 ] as const satisfies readonly { id: string; label: string; tabs: readonly TabId[] }[];
 
@@ -84,6 +88,8 @@ interface AdminDashboardProps {
   initialHistory: PeriodHistoryRow[];
   initialRepairs: Repair[];
   initialAccessorySales: AccessorySale[];
+  initialPedidos: PedidoEntrante[];
+  initialPedidoItems: PedidoItem[];
   oficina: {
     today: string;
     staff: Staff[];
@@ -105,8 +111,12 @@ export function AdminDashboard({
   initialHistory,
   initialRepairs,
   initialAccessorySales,
+  initialPedidos,
+  initialPedidoItems,
   oficina,
 }: AdminDashboardProps) {
+  const [pedidos, setPedidos] = useState<PedidoEntrante[]>(initialPedidos);
+  const [pedidoItems, setPedidoItems] = useState<PedidoItem[]>(initialPedidoItems);
   const [repairs, setRepairs] = useState<Repair[]>(initialRepairs);
   const [staff, setStaff] = useState<Staff[]>(oficina.staff);
   const [events, setEvents] = useState<ClockEvent[]>(oficina.events);
@@ -153,7 +163,7 @@ export function AdminDashboard({
   const teamAverages = useMemo(() => buildTeamAverages(metrics), [metrics]);
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6">
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-xl font-bold text-text">Panel de control</h1>
@@ -260,6 +270,18 @@ export function AdminDashboard({
           today={oficina.today}
           supabase={supabase}
           onChange={setRepairs}
+        />
+      )}
+      {tab === 'en-camino' && (
+        <StockEnCaminoTab
+          pedidos={pedidos}
+          items={pedidoItems}
+          today={oficina.today}
+          supabase={supabase}
+          onChange={(p, i) => {
+            setPedidos(p);
+            setPedidoItems(i);
+          }}
         />
       )}
       {tab === 'asistencia' && (

@@ -285,6 +285,46 @@ export interface Database {
         { id: string; contact_id: string; seller_id: string; date: string; created_at: string },
         { contact_id: string; seller_id: string; date?: string }
       >;
+      pedidos_entrantes: TableOf<
+        {
+          id: string;
+          numero: number;
+          fecha: string;
+          proveedor: string | null;
+          ubicacion: 'usa' | 'baires' | 'cordoba' | 'ofi';
+          notas: string | null;
+          creado_en: string;
+          actualizado_en: string;
+        },
+        {
+          numero: number;
+          fecha: string;
+          proveedor?: string | null;
+          ubicacion?: 'usa' | 'baires' | 'cordoba' | 'ofi';
+          notas?: string | null;
+        }
+      >;
+      pedidos_entrantes_items: TableOf<
+        {
+          id: string;
+          pedido_id: string;
+          modelo: string;
+          condicion: string;
+          color: string | null;
+          cantidad: number;
+          costo: number;
+          reservado: number;
+        },
+        {
+          pedido_id: string;
+          modelo: string;
+          condicion: string;
+          color?: string | null;
+          cantidad: number;
+          costo: number;
+          reservado?: number;
+        }
+      >;
       accessory_sales: TableOf<
         {
           id: string;

@@ -2,6 +2,7 @@ import { requireAdmin } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAll } from '@/lib/fetch-all';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import type { PedidoEntrante, PedidoItem } from '@/lib/importacion';
 import { todayAR } from '@/lib/calc';
 import { STAFF_COLUMNS, dateARPlus, monthRange } from '@/lib/oficina';
 
@@ -32,6 +33,8 @@ export default async function AdminPage() {
     { data: units },
     repairs,
     { data: accessorySales },
+    { data: pedidos },
+    { data: pedidoItems },
   ] = await Promise.all([
     supabase.from('sellers').select('*').order('created_at', { ascending: true }),
     supabase.from('period').select('*').eq('id', 1).single(),
@@ -62,6 +65,8 @@ export default async function AdminPage() {
         .range(from, to)
     ),
     supabase.from('accessory_sales').select('*').order('date', { ascending: false }),
+    supabase.from('pedidos_entrantes').select('*').order('fecha', { ascending: false }),
+    supabase.from('pedidos_entrantes_items').select('*'),
   ]);
 
   if (!period) {
@@ -81,6 +86,8 @@ export default async function AdminPage() {
       initialHistory={history ?? []}
       initialRepairs={repairs}
       initialAccessorySales={accessorySales ?? []}
+      initialPedidos={(pedidos ?? []) as PedidoEntrante[]}
+      initialPedidoItems={(pedidoItems ?? []) as PedidoItem[]}
       oficina={{
         today,
         staff: staff ?? [],
