@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Sora, Poppins } from "next/font/google";
 import "./globals.css";
+import { AutoUpdate } from "@/components/ui/AutoUpdate";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -27,7 +28,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="es"
       className={`${sora.variable} ${poppins.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-bg text-text">{children}</body>
+      <body className="min-h-full flex flex-col bg-bg text-text">
+        {children}
+        <AutoUpdate />
+      </body>
     </html>
   );
 }

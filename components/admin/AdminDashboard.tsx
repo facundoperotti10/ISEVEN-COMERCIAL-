@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/ui/LogoutButton';
+import { RefreshButton } from '@/components/ui/RefreshButton';
+import { usePersistentState } from '@/lib/usePersistentState';
 import { OficinaEnVivo } from '@/components/oficina/OficinaEnVivo';
 import {
   buildSellerMetrics,
@@ -127,8 +129,8 @@ export function AdminDashboard({
   const stockPend = stock.filter((r) => r.status === 'pendiente' && r.trip_date >= oficina.today).length;
   const [sellers, setSellers] = useState<Seller[]>(initialSellers);
   const [period, setPeriod] = useState<Period>(initialPeriod);
-  const [seccion, setSeccion] = useState<SeccionId>('minorista');
-  const [tab, setTab] = useState<TabId>('resumen');
+  const [seccion, setSeccion] = usePersistentState<SeccionId>('admin-seccion', 'minorista', SECCIONES.map((s) => s.id));
+  const [tab, setTab] = usePersistentState<TabId>('admin-tab', 'resumen', TABS.map((t) => t.id));
   const supabase = useMemo(() => createClient(), []);
   const seccionActual = SECCIONES.find((s) => s.id === seccion)!;
   const tabsSeccion = TABS.filter((t) => (seccionActual.tabs as readonly TabId[]).includes(t.id));
@@ -169,7 +171,10 @@ export function AdminDashboard({
           <h1 className="font-display text-xl font-bold text-text">Panel de control</h1>
           <p className="text-xs text-text-muted">{period.name}</p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <RefreshButton />
+          <LogoutButton />
+        </div>
       </header>
 
       <OficinaEnVivo />

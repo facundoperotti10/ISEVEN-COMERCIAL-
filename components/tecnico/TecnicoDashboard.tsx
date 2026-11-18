@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { OficinaEnVivo } from '@/components/oficina/OficinaEnVivo';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/ui/LogoutButton';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { RepairForm, type RepairDraft } from '@/components/tecnico/RepairForm';
 import { RepairsList } from '@/components/tecnico/RepairsList';
@@ -92,7 +93,10 @@ export function TecnicoDashboard({ seller, initialRepairs, name }: TecnicoDashbo
           <h1 className="font-display text-xl font-bold text-text">Hola, {name}</h1>
           <p className="text-xs text-text-muted">Servicio técnico</p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <RefreshButton />
+          <LogoutButton />
+        </div>
       </header>
 
       <OficinaEnVivo />

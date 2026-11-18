@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { OficinaEnVivo } from '@/components/oficina/OficinaEnVivo';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/ui/LogoutButton';
+import { RefreshButton } from '@/components/ui/RefreshButton';
+import { usePersistentState } from '@/lib/usePersistentState';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { PaceGauge } from '@/components/ui/PaceGauge';
 import { SemaforoBadge } from '@/components/ui/SemaforoBadge';
@@ -64,7 +66,7 @@ export function VendedorDashboard({
   const [clientSales, setClientSales] = useState<ClientSale[]>(initialClientSales);
   const [accessorySales, setAccessorySales] = useState<AccessorySale[]>(initialAccessorySales);
   const esMayorista = sellerArea(seller) === 'mayorista';
-  const [tab, setTab] = useState<'hoy' | 'clientes' | 'progreso'>('hoy');
+  const [tab, setTab] = usePersistentState<'hoy' | 'clientes' | 'progreso'>('vendedor-tab', 'hoy', ['hoy', 'clientes', 'progreso']);
   const [celebration, setCelebration] = useState<CelebrationTrigger | null>(null);
   const dismissCelebration = useCallback(() => setCelebration(null), []);
   const supabase = useMemo(() => createClient(), []);
@@ -236,7 +238,10 @@ export function VendedorDashboard({
           <h1 className="font-display text-xl font-bold text-text">Hola, {sellerName}</h1>
           <p className="text-xs text-text-muted">{period.name}</p>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-2">
+          <RefreshButton />
+          <LogoutButton />
+        </div>
       </header>
 
       <OficinaEnVivo />

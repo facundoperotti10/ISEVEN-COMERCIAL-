@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { OficinaEnVivo } from '@/components/oficina/OficinaEnVivo';
 import { createClient } from '@/lib/supabase/client';
 import { LogoutButton } from '@/components/ui/LogoutButton';
+import { RefreshButton } from '@/components/ui/RefreshButton';
+import { usePersistentState } from '@/lib/usePersistentState';
 import { TaskList } from '@/components/oficina/TaskList';
 import { StockRequestCard } from '@/components/oficina/StockRequestCard';
 import { CupoLocal } from '@/components/oficina/CupoLocal';
@@ -63,7 +65,7 @@ export function EquipoDashboard({
   const [lots, setLots] = useState(initialLots);
   const [units, setUnits] = useState(initialUnits);
   const supabase = useMemo(() => createClient(), []);
-  const [tab, setTab] = useState<TabId>('hoy');
+  const [tab, setTab] = usePersistentState<TabId>('equipo-tab', 'hoy', TABS.map((t) => t.id));
   const [tasks, setTasks] = useState(initialTasks);
   const [stock, setStock] = useState(initialStock);
   const [shifts, setShifts] = useState(initialShifts);
@@ -129,7 +131,10 @@ export function EquipoDashboard({
               Mis ventas
             </Link>
           )}
-          <LogoutButton />
+          <div className="flex items-center gap-2">
+            <RefreshButton />
+            <LogoutButton />
+          </div>
         </div>
       </header>
 
