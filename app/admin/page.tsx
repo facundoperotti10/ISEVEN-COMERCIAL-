@@ -52,7 +52,11 @@ export default async function AdminPage() {
     supabase.from('clock_events').select('*').gte('work_date', month.start).lte('work_date', month.end).order('at'),
     supabase.from('tasks').select('*').eq('date', today).order('created_at'),
     supabase.from('task_templates').select('*').order('sort'),
-    supabase.from('stock_requests').select('*').gte('trip_date', dateARPlus(-14)).order('trip_date'),
+    supabase
+      .from('stock_requests')
+      .select('*')
+      .or(`trip_date.gte.${dateARPlus(-14)},status.in.(pendiente,autorizado)`)
+      .order('trip_date'),
     supabase.from('saturday_shifts').select('*').gte('date', today).order('date'),
     supabase.from('stock_lots').select('*').gte('received_at', `${dateARPlus(-21)}T00:00:00`).order('received_at'),
     supabase.from('reserved_units').select('*').gte('created_at', `${dateARPlus(-21)}T00:00:00`).order('created_at'),

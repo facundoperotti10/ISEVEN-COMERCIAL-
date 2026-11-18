@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, StockStatus, TripSlot } from '@/lib/database.types';
 import { StockRequestCard } from '@/components/oficina/StockRequestCard';
 import { PushToggle } from '@/components/oficina/PushToggle';
 import { CupoLocal } from '@/components/oficina/CupoLocal';
-import { SLOT_LABEL, errorMessage, fechaLarga, type Staff, type StockRequest, type ReservedUnit, type StockLot } from '@/lib/oficina';
+import { SLOT_LABEL, dateARPlus, errorMessage, fechaLarga, type Staff, type StockRequest, type ReservedUnit, type StockLot } from '@/lib/oficina';
 
 interface Props {
   staff: Staff[];
@@ -27,10 +27,34 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
   const [q, setQ] = useState('');
   const nameOf = (id: string) => staff.find((s) => s.id === id)?.name ?? id;
 
+  // Se actualiza solo cada minuto y al volver a la app, así los pedidos nuevos aparecen sin recargar.
+  useEffect(() => {
+    let cancelled = false;
+    async function refrescar() {
+      const { data } = await supabase
+        .from('stock_requests')
+        .select('*')
+        .or(`trip_date.gte.${dateARPlus(-14)},status.in.(pendiente,autorizado)`)
+        .order('trip_date');
+      if (!cancelled && data) onChange(data);
+    }
+    const id = window.setInterval(refrescar, 60_000);
+    const onVisible = () => document.visibilityState === 'visible' && refrescar();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
+
   const term = q.trim().toLowerCase();
+  // Lo pendiente o autorizado se ve SIEMPRE, aunque su día ya haya pasado.
+  const abierto = (r: StockRequest) => r.status === 'pendiente' || r.status === 'autorizado';
   const visible = requests.filter(
     (r) =>
-      (showPast || term ? true : r.trip_date >= today) &&
+      (showPast || term ? true : r.trip_date >= today || abierto(r)) &&
       (!term ||
         (r.imei ?? '').includes(term) ||
         r.cliente.toLowerCase().includes(term) ||
@@ -57,7 +81,7 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
     onChange(requests.map((r) => byId.get(r.id) ?? r));
   }
 
-  const pendientes = requests.filter((r) => r.status === 'pendiente' && r.trip_date >= today).length;
+  const pendientes = requests.filter((r) => r.status === 'pendiente').length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,8 +90,8 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
       <h2 className="mt-2 font-display text-base font-bold">Pedidos de los vendedores</h2>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-text-secondary">
-          {pendientes ? `${pendientes} pedidos esperando autorización.` : 'No hay pedidos pendientes.'} Lo de mañana se carga hasta
-          las 23:00 (viaje de las 10:00). Lo de hoy, hasta las 14:00 (viaje de las 15:00).
+          {pendientes ? `${pendientes} pedidos esperando autorización.` : 'No hay pedidos pendientes.'} Los vendedores pueden
+          cargar en cualquier momento; lo que llega tarde pasa al próximo viaje (o urgente, si lo marcan). Se actualiza solo.
         </p>
         <input
           id="stock-buscar"
@@ -96,6 +120,11 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-display text-base font-bold">
                 {fechaLarga(date)} · {SLOT_LABEL[slot]}
+                {date < today && (
+                  <span className="ml-2 rounded-full bg-red/15 px-2 py-0.5 align-middle text-[11px] font-semibold text-red">
+                    Atrasado
+                  </span>
+                )}
               </h2>
               <div className="flex gap-2">
                 {pend.length > 1 && (

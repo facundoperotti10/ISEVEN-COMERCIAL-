@@ -320,7 +320,11 @@ function StockTab({
     if (error || !data) return onError(errorMessage(error));
     onCreated(data);
     setSentMsg(
-      `Pedido enviado: ${data.length} ${data.length === 1 ? 'equipo' : 'equipos'}. Ya les llegó el aviso a Facu y Mike.`,
+      `Pedido enviado: ${data.length} ${data.length === 1 ? 'equipo' : 'equipos'}. ${
+        data[0].trip_slot === 'urgente'
+          ? 'Va como urgente.'
+          : `Va en el viaje de las ${data[0].trip_slot} del ${data[0].trip_date.slice(8, 10)}/${data[0].trip_date.slice(5, 7)}.`
+      }`,
     );
     // Aviso al celular de los dueños (si falla, el pedido igual queda cargado).
     fetch('/api/push/stock', {
@@ -371,8 +375,8 @@ function StockTab({
         <form onSubmit={submit} className="card flex flex-col gap-3 p-4">
           <h2 className="font-display text-base font-bold">Pedir stock</h2>
           <p className="text-xs text-text-secondary">
-            Lo de mañana cargalo hasta las 23:00 y va en el viaje de las 10:00. Lo de hoy, antes de las 14:00 para el
-            viaje de las 15:00. Pasado el corte, solo como urgente.
+            Cargalo cuando quieras: siempre queda registrado. Lo de mañana cargado antes de las 23:00 va en el viaje de las
+            10:00; lo de hoy antes de las 14:00, en el de las 15:00. Si es después, pasa al próximo viaje, o marcalo urgente.
           </p>
           <label className="text-xs text-text-muted">
             Cliente
