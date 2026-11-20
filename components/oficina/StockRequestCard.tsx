@@ -2,7 +2,7 @@ import type { StockRequest } from '@/lib/oficina';
 import { STATUS_LABEL, fechaLarga } from '@/lib/oficina';
 
 const STATUS_CLASS = {
-  pendiente: 'bg-yellow/15 text-yellow',
+  pendiente: 'bg-green/15 text-green',
   autorizado: 'bg-green/15 text-green',
   rechazado: 'bg-red/15 text-red',
   entregado: 'bg-lilac/15 text-lilac',

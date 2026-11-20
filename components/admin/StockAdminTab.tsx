@@ -128,7 +128,7 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
     onChange(requests.map((r) => byId.get(r.id) ?? r));
   }
 
-  const pendientes = requests.filter((r) => r.status === 'pendiente').length;
+  const paraLlevar = requests.filter((r) => abierto(r) && r.trip_date >= today).length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -136,8 +136,8 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
       <CupoLocal mode="admin" staff={staff} lots={lots} units={units} supabase={supabase} onChange={onCupoChange} />
       <h2 className="mt-2 font-display text-base font-bold">Pedidos de los vendedores</h2>
       <p className="text-sm text-text-secondary">
-        {pendientes ? `${pendientes} pedidos esperando autorización.` : 'No hay pedidos pendientes.'} Los vendedores pueden
-        cargar en cualquier momento; lo que llega tarde pasa al próximo viaje (o urgente, si lo marcan). Se actualiza solo.
+        {paraLlevar ? `${paraLlevar} ${paraLlevar === 1 ? 'pedido para llevar' : 'pedidos para llevar'}.` : 'No hay pedidos para llevar.'} Los pedidos
+        entran directo, sin autorizar. Lo que llega tarde pasa al próximo viaje (o urgente, si lo marcan). Se actualiza solo.
       </p>
 
       <div className="card flex flex-col gap-3 p-4">
@@ -204,8 +204,7 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
       )}
       {[...groups.entries()].map(([key, list]) => {
         const [date, slot] = key.split('|') as [string, TripSlot];
-        const pend = list.filter((r) => r.status === 'pendiente').map((r) => r.id);
-        const aut = list.filter((r) => r.status === 'autorizado').map((r) => r.id);
+        const abiertos = list.filter(abierto).map((r) => r.id);
         return (
           <section key={key} className={`card p-4 ${slot === 'urgente' ? 'border-red/50' : ''}`}>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -218,14 +217,9 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
                 )}
               </h2>
               <div className="flex gap-2">
-                {pend.length > 1 && (
-                  <button onClick={() => setStatus(pend, 'autorizado')} className="rounded-full bg-green/20 px-3 py-1 text-xs font-semibold text-green">
-                    Autorizar todos ({pend.length})
-                  </button>
-                )}
-                {aut.length > 0 && (
-                  <button onClick={() => setStatus(aut, 'entregado')} className="rounded-full bg-lilac/20 px-3 py-1 text-xs font-semibold text-lilac">
-                    Ya está en la oficina ({aut.length})
+                {abiertos.length > 1 && (
+                  <button onClick={() => setStatus(abiertos, 'entregado')} className="rounded-full bg-lilac/20 px-3 py-1 text-xs font-semibold text-lilac">
+                    Todos ya en la oficina ({abiertos.length})
                   </button>
                 )}
               </div>
@@ -233,20 +227,18 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
             <div className="flex flex-col gap-2">
               {list.map((r) => (
                 <StockRequestCard key={r.id} r={r} who={nameOf(r.staff_id)}>
-                  {r.status === 'pendiente' && (
+                  {abierto(r) && (
                     <>
-                      <button onClick={() => setStatus([r.id], 'autorizado')} className="rounded-full bg-green/20 px-3 py-1 text-xs font-semibold text-green">
-                        Autorizar
+                      <button onClick={() => setStatus([r.id], 'entregado')} className="rounded-full bg-lilac/20 px-3 py-1 text-xs font-semibold text-lilac">
+                        Ya está en la oficina
                       </button>
-                      <button onClick={() => setStatus([r.id], 'rechazado')} className="rounded-full border border-red/40 px-3 py-1 text-xs text-red">
-                        Rechazar
+                      <button
+                        onClick={() => confirm('¿Cancelar este pedido?') && setStatus([r.id], 'rechazado')}
+                        className="px-2 py-1 text-[11px] text-text-muted underline hover:text-red"
+                      >
+                        Cancelar
                       </button>
                     </>
-                  )}
-                  {r.status === 'autorizado' && (
-                    <button onClick={() => setStatus([r.id], 'entregado')} className="rounded-full bg-lilac/20 px-3 py-1 text-xs text-lilac">
-                      Ya está en la oficina
-                    </button>
                   )}
                 </StockRequestCard>
               ))}

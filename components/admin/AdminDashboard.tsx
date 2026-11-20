@@ -126,7 +126,7 @@ export function AdminDashboard({
   const [stock, setStock] = useState<StockRequest[]>(oficina.stock);
   const [lots, setLots] = useState<StockLot[]>(oficina.lots);
   const [units, setUnits] = useState<ReservedUnit[]>(oficina.units);
-  const stockPend = stock.filter((r) => r.status === 'pendiente' && r.trip_date >= oficina.today).length;
+  const stockPend = stock.filter((r) => (r.status === 'pendiente' || r.status === 'autorizado') && r.trip_date >= oficina.today).length;
   const [sellers, setSellers] = useState<Seller[]>(initialSellers);
   const [period, setPeriod] = useState<Period>(initialPeriod);
   const [seccion, setSeccion] = usePersistentState<SeccionId>('admin-seccion', 'minorista', SECCIONES.map((s) => s.id));

@@ -74,8 +74,8 @@ export const KIND_LABEL: Record<ClockKind, string> = {
 };
 
 export const STATUS_LABEL: Record<StockStatus, string> = {
-  pendiente: 'Pendiente',
-  autorizado: 'Autorizado',
+  pendiente: 'Para llevar',
+  autorizado: 'Para llevar',
   rechazado: 'Rechazado',
   entregado: 'En la oficina',
 };
