@@ -192,6 +192,19 @@ export function StockAdminTab({ staff, requests, today, supabase, onChange, lots
         </button>
       )}
 
+      {dia === 'atrasados' && atrasados.length > 0 && !term && (
+        <button
+          onClick={async () => {
+            if (!confirm(`¿Marcar los ${atrasados.length} pedidos atrasados como ya entregados? Así desaparecen de la lista.`)) return;
+            await setStatus(atrasados.map((r) => r.id), 'entregado');
+            setDia('hoy');
+          }}
+          className="rounded-[10px] bg-lilac/20 px-3 py-2.5 text-sm font-semibold text-lilac"
+        >
+          Dar por entregados todos los atrasados ({atrasados.length})
+        </button>
+      )}
+
       {error && (
         <button onClick={() => setError(null)} className="rounded-[10px] bg-red/15 px-3 py-2 text-left text-sm text-red">
           {error}
